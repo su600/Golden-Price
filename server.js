@@ -210,6 +210,37 @@ app.get('/api/search', async (req, res) => {
   }
 });
 
+// ── Yahoo Finance historical data proxy ──────────────────────
+// GET /api/history/:symbol?interval=5m&range=1d
+app.get('/api/history/:symbol', async (req, res) => {
+  const symbol   = req.params.symbol;
+  const interval = req.query.interval || '5m';
+  const range    = req.query.range    || '1d';
+  const options = {
+    hostname: 'query1.finance.yahoo.com',
+    path: `/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${interval}&range=${range}`,
+    method: 'GET',
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      'Accept': 'application/json',
+      'Accept-Language': 'en-US,en;q=0.9',
+    },
+  };
+  const start = Date.now();
+  try {
+    const { status, body } = await httpsGet(options, 20000);
+    console.log(`[history] ${symbol} ${interval}/${range} | Status: ${status} | ${Date.now() - start}ms`);
+    try {
+      res.status(status).json(JSON.parse(body));
+    } catch (_) {
+      res.status(502).json({ error: 'Invalid JSON from Yahoo Finance' });
+    }
+  } catch (err) {
+    console.error(`[history] ${symbol} error: ${err.message}`);
+    res.status(504).json({ error: err.message === 'timeout' ? 'Request timed out' : `Request failed: ${err.message}` });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`\n  💰 Golden-Price server running at http://localhost:${PORT}\n`);
 });

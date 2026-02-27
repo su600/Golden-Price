@@ -655,24 +655,223 @@ function startAutoRefresh() {
 }
 
 // ── Trend Chart Modal ────────────────────────────────────────
-function openTrendChart(id) {
-  const item = ITEMS.find((i) => i.id === id);
-  if (!item) return;
+// Range → [interval, yahooRange]
+const CHART_RANGES = {
+  '1d':  ['5m',  '1d'],
+  '5d':  ['30m', '5d'],
+  '1mo': ['1d',  '1mo'],
+  '1y':  ['1d',  '1y'],
+  '5y':  ['1wk', '5y'],
+  'max': ['1mo', 'max'],
+};
 
-  const pts = history[id] || [];
-  document.getElementById('chartTitle').textContent = `${item.emoji} ${item.name} (${item.name_zh})`;
+let currentChartItem = null;
 
-  const modal = document.getElementById('chartModal');
-  modal.classList.add('open');
+function formatChartLabel(ts, range) {
+  const d = new Date(ts * 1000);
+  if (range === '1d') {
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+  if (range === '5d') {
+    return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) +
+      ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+  return d.toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' });
+}
 
-  // Meta info
-  const meta = document.getElementById('chartMeta');
-  meta.textContent = pts.length > 0
-    ? `${pts.length} data points · ${fmtTime(pts[0].t)} – ${fmtTime(pts[pts.length - 1].t)}`
-    : 'No history yet — refresh to collect data.';
+async function fetchChartHistory(ticker, range) {
+  const [interval, r] = CHART_RANGES[range] || CHART_RANGES['1d'];
+  const res = await fetch(`/api/history/${encodeURIComponent(ticker)}?interval=${interval}&range=${r}`);
+  const data = await res.json();
+  if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
+  const result = data?.chart?.result?.[0];
+  if (!result) throw new Error('No data');
+  return result;
+}
 
-  // Stats
-  const statsEl = document.getElementById('chartStats');
+function buildStatsHTML(meta, dayHigh, dayLow, dayOpen, totalVol) {
+  const f = (v) => (v != null ? fmt(v) : '—');
+  const fVol = (v) => {
+    if (v == null) return '—';
+    if (v >= 1e8) return (v / 1e8).toFixed(2) + '亿';
+    if (v >= 1e4) return (v / 1e4).toFixed(2) + '万';
+    return v.toLocaleString();
+  };
+  return `
+    <div class="stat-item">
+      <div class="stat-label">高</div>
+      <div class="stat-value" style="color:var(--negative)">${f(dayHigh)}</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">开盘</div>
+      <div class="stat-value">${f(dayOpen)}</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">近52周最高</div>
+      <div class="stat-value" style="color:var(--negative)">${f(meta?.fiftyTwoWeekHigh)}</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">低</div>
+      <div class="stat-value" style="color:var(--positive)">${f(dayLow)}</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">成交量</div>
+      <div class="stat-value">${fVol(totalVol ?? meta?.regularMarketVolume)}</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">近52周最低</div>
+      <div class="stat-value" style="color:var(--positive)">${f(meta?.fiftyTwoWeekLow)}</div>
+    </div>
+  `;
+}
+
+function renderYahooChart(item, chartData, meta, range) {
+  const container = document.getElementById('trendChart');
+  if (!container || typeof Highcharts === 'undefined') return;
+  if (trendChart) { trendChart.destroy(); trendChart = null; }
+
+  const labels  = chartData.map((d) => formatChartLabel(d.ts, range));
+  const prices  = chartData.map((d) => d.close);
+  const volumes = chartData.map((d) => d.volume ?? 0);
+
+  const prevClose = meta.previousClose ?? meta.chartPreviousClose;
+  const lastPrice = prices[prices.length - 1];
+  const chartColor = (lastPrice != null && prevClose != null)
+    ? (lastPrice >= prevClose ? '#0DAD5C' : '#E53935')
+    : item.accent;
+
+  const hasVolume = volumes.some((v) => v > 0);
+  const priceHeight = hasVolume ? '72%' : '100%';
+  const priceBottom = hasVolume ? '28%' : '0%';
+
+  const yAxes = [
+    {
+      title: { text: null },
+      labels: { style: { color: '#5A6478', fontSize: '10px' } },
+      gridLineColor: 'rgba(0,0,0,0.06)',
+      height: priceHeight,
+      plotLines: prevClose ? [{
+        value: prevClose,
+        color: 'rgba(0,0,0,0.22)',
+        dashStyle: 'Dash',
+        width: 1,
+        label: {
+          text: `前收: ${fmt(prevClose)}`,
+          align: 'right',
+          style: { color: '#9BA3B2', fontSize: '9px' },
+        },
+        zIndex: 3,
+      }] : [],
+    },
+  ];
+
+  const series = [
+    {
+      type: 'area',
+      name: item.name,
+      color: chartColor,
+      data: prices,
+      yAxis: 0,
+      zIndex: 2,
+    },
+  ];
+
+  if (hasVolume) {
+    yAxes.push({
+      title: { text: null },
+      labels: { enabled: false },
+      gridLineWidth: 0,
+      top: priceBottom,
+      height: '24%',
+      offset: 0,
+    });
+    series.push({
+      type: 'column',
+      name: '成交量',
+      color: chartColor + '55',
+      data: volumes,
+      yAxis: 1,
+      zIndex: 1,
+    });
+  }
+
+  trendChart = Highcharts.chart(container, {
+    chart: {
+      backgroundColor: null,
+      animation: { duration: 400 },
+      margin: [8, 8, 24, 54],
+    },
+    title: { text: null },
+    credits: { enabled: false },
+    xAxis: {
+      categories: labels,
+      labels: {
+        style: { color: '#5A6478', fontSize: '10px' },
+        step: Math.max(1, Math.floor(labels.length / 6)),
+      },
+      lineColor: 'rgba(0,0,0,0.1)',
+      tickColor: 'transparent',
+      crosshair: { color: 'rgba(0,0,0,0.12)', width: 1 },
+    },
+    yAxis: yAxes,
+    tooltip: {
+      backgroundColor: 'rgba(15,20,48,0.92)',
+      borderColor: chartColor,
+      borderWidth: 1,
+      style: { color: '#f0f0f0', fontSize: '11px' },
+      shared: true,
+      formatter: function () {
+        let s = `<b>${this.x}</b>`;
+        this.points.forEach((pt) => {
+          if (pt.series.type === 'area') {
+            s += `<br/>价格: <b>${fmt(pt.y)}</b> ${item.unit}`;
+          } else if (pt.series.type === 'column') {
+            s += `<br/>成交量: <b>${(pt.y || 0).toLocaleString()}</b>`;
+          }
+        });
+        return s;
+      },
+    },
+    legend: { enabled: false },
+    plotOptions: {
+      area: {
+        fillColor: {
+          linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
+          stops: [
+            [0, chartColor + '44'],
+            [1, chartColor + '00'],
+          ],
+        },
+        lineWidth: 1.5,
+        marker: {
+          enabled: chartData.length <= 30,
+          radius: 3,
+          fillColor: chartColor,
+          symbol: 'circle',
+        },
+        states: { hover: { lineWidth: 1.5 } },
+        threshold: null,
+      },
+      column: {
+        borderWidth: 0,
+        pointPadding: 0.05,
+        groupPadding: 0,
+      },
+    },
+    series,
+  });
+}
+
+function renderHistoryChart(item) {
+  const pts       = history[item.id] || [];
+  const metaEl    = document.getElementById('chartMeta');
+  const statsEl   = document.getElementById('chartStats');
+  const priceEl   = document.getElementById('chartPriceDisplay');
+
+  metaEl.textContent = pts.length > 0
+    ? `${pts.length} 个历史记录 · ${fmtTime(pts[0].t)} – ${fmtTime(pts[pts.length - 1].t)}`
+    : '暂无历史数据 — 请刷新以收集数据。';
+
   if (pts.length > 1) {
     const values = pts.map((p) => p.v);
     const minV   = Math.min(...values);
@@ -680,35 +879,38 @@ function openTrendChart(id) {
     const latest = values[values.length - 1];
     const first  = values[0];
     const change = ((latest - first) / first) * 100;
+    priceEl.innerHTML = `
+      <span class="chart-price-val">${fmt(latest)}</span>
+      <span class="chart-price-change ${change >= 0 ? 'pos' : 'neg'}">
+        ${change >= 0 ? '+' : ''}${change.toFixed(2)}%
+      </span>`;
     statsEl.innerHTML = `
       <div class="stat-item">
-        <div class="stat-label">Min</div>
-        <div class="stat-value" style="color:#ff8a9b">${fmt(minV)}</div>
+        <div class="stat-label">最低</div>
+        <div class="stat-value" style="color:var(--positive)">${fmt(minV)}</div>
       </div>
       <div class="stat-item">
-        <div class="stat-label">Max</div>
-        <div class="stat-value" style="color:#00e676">${fmt(maxV)}</div>
+        <div class="stat-label">最高</div>
+        <div class="stat-value" style="color:var(--negative)">${fmt(maxV)}</div>
       </div>
       <div class="stat-item">
-        <div class="stat-label">Change</div>
-        <div class="stat-value" style="color:${change >= 0 ? '#00e676' : '#ff8a9b'}">${change >= 0 ? '+' : ''}${change.toFixed(2)}%</div>
-      </div>
-    `;
+        <div class="stat-label">涨跌幅</div>
+        <div class="stat-value" style="color:${change >= 0 ? 'var(--positive)' : 'var(--negative)'}">
+          ${change >= 0 ? '+' : ''}${change.toFixed(2)}%</div>
+      </div>`;
   } else {
+    priceEl.innerHTML = '';
     statsEl.innerHTML = '';
   }
 
-  // Destroy previous chart instance
-  if (trendChart) { trendChart.destroy(); trendChart = null; }
-
   const container = document.getElementById('trendChart');
   if (!container || typeof Highcharts === 'undefined') return;
+  if (trendChart) { trendChart.destroy(); trendChart = null; }
+  if (pts.length === 0) return;
 
+  const accent = item.accent;
   trendChart = Highcharts.chart(container, {
-    chart: {
-      backgroundColor: null,
-      animation: { duration: 300 },
-    },
+    chart: { backgroundColor: null, animation: { duration: 300 } },
     title: { text: null },
     credits: { enabled: false },
     xAxis: {
@@ -727,38 +929,118 @@ function openTrendChart(id) {
     },
     tooltip: {
       backgroundColor: 'rgba(15,20,48,0.92)',
-      borderColor: item.accent,
+      borderColor: accent,
       borderWidth: 1,
       style: { color: '#f0f0f0' },
-      formatter: function () {
-        return `<b>${this.x}</b><br/>${fmt(this.y)} ${item.unit}`;
-      },
+      formatter: function () { return `<b>${this.x}</b><br/>${fmt(this.y)} ${item.unit}`; },
     },
     legend: { enabled: false },
     plotOptions: {
       area: {
         fillColor: {
           linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
-          stops: [
-            [0, item.accent + '44'],
-            [1, item.accent + '00'],
-          ],
+          stops: [[0, accent + '44'], [1, accent + '00']],
         },
         lineWidth: 2,
-        marker: {
-          enabled: pts.length <= 12,
-          radius: 3,
-          fillColor: item.accent,
-        },
+        marker: { enabled: pts.length <= 12, radius: 3, fillColor: accent },
         states: { hover: { lineWidth: 2 } },
       },
     },
-    series: [{
-      type: 'area',
-      color: item.accent,
-      data: pts.map((p) => p.v),
-    }],
+    series: [{ type: 'area', color: accent, data: pts.map((p) => p.v) }],
   });
+}
+
+async function loadChartRange(item, range) {
+  const metaEl  = document.getElementById('chartMeta');
+  const statsEl = document.getElementById('chartStats');
+  const priceEl = document.getElementById('chartPriceDisplay');
+
+  metaEl.textContent = '加载中…';
+  priceEl.innerHTML  = '';
+  statsEl.innerHTML  = '';
+  if (trendChart) { trendChart.destroy(); trendChart = null; }
+
+  if (!item.ticker) { renderHistoryChart(item); return; }
+
+  try {
+    const result = await fetchChartHistory(item.ticker, range);
+    const meta       = result.meta || {};
+    const timestamps = result.timestamp || [];
+    const quote      = result.indicators?.quote?.[0] || {};
+    const closes  = quote.close  || [];
+    const volumes = quote.volume || [];
+    const highs   = quote.high   || [];
+    const lows    = quote.low    || [];
+    const opens   = quote.open   || [];
+
+    const chartData = timestamps.map((ts, i) => ({
+      ts, close: closes[i], volume: volumes[i],
+      high: highs[i], low: lows[i], open: opens[i],
+    })).filter((d) => d.close != null);
+
+    if (chartData.length === 0) { renderHistoryChart(item); return; }
+
+    // Price header
+    const price     = meta.regularMarketPrice ?? closes[closes.length - 1];
+    const prevClose = meta.previousClose ?? meta.chartPreviousClose;
+    const change    = prevClose ? price - prevClose : 0;
+    const changePct = prevClose ? (change / prevClose) * 100 : 0;
+    const isUp      = change >= 0;
+    priceEl.innerHTML = `
+      <span class="chart-price-val">${fmt(price)}</span>
+      <span class="chart-price-change ${isUp ? 'pos' : 'neg'}">
+        ${isUp ? '▲' : '▼'} ${isUp ? '+' : ''}${fmt(Math.abs(change))}
+        (${isUp ? '+' : ''}${changePct.toFixed(2)}%) 今日
+      </span>`;
+
+    metaEl.textContent = `${chartData.length} 个数据点`;
+
+    // Stats
+    const validHighs = highs.filter((v) => v != null);
+    const validLows  = lows.filter((v) => v != null);
+    const totalVol   = volumes.filter((v) => v != null).reduce((s, v) => s + v, 0) || null;
+    const dayHigh    = validHighs.length ? Math.max(...validHighs) : null;
+    const dayLow     = validLows.length  ? Math.min(...validLows)  : null;
+    const dayOpen    = opens.find((v) => v != null) ?? null;
+    statsEl.innerHTML = buildStatsHTML(meta, dayHigh, dayLow, dayOpen, totalVol);
+
+    renderYahooChart(item, chartData, meta, range);
+  } catch (err) {
+    console.warn(`[chart] range ${range} failed:`, err.message);
+    metaEl.textContent = '无法加载数据，显示历史记录';
+    renderHistoryChart(item);
+  }
+}
+
+function openTrendChart(id) {
+  const item = ITEMS.find((i) => i.id === id);
+  if (!item) return;
+  currentChartItem = item;
+
+  // Reset range tabs to 1d
+  const tabsEl = document.getElementById('chartRangeTabs');
+  tabsEl.querySelectorAll('.range-tab').forEach((btn) => {
+    const active = btn.dataset.range === '1d';
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-selected', String(active));
+    btn.onclick = () => {
+      tabsEl.querySelectorAll('.range-tab').forEach((b) => {
+        b.classList.remove('active');
+        b.setAttribute('aria-selected', 'false');
+      });
+      btn.classList.add('active');
+      btn.setAttribute('aria-selected', 'true');
+      loadChartRange(currentChartItem, btn.dataset.range);
+    };
+  });
+
+  document.getElementById('chartTitle').textContent = `${item.emoji} ${item.name_zh || item.name}`;
+  document.getElementById('chartPriceDisplay').innerHTML = '';
+  document.getElementById('chartMeta').textContent = '';
+  document.getElementById('chartStats').innerHTML = '';
+  document.getElementById('chartModal').classList.add('open');
+
+  loadChartRange(item, '1d');
 }
 
 function closeTrendChart() {

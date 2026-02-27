@@ -110,8 +110,19 @@
     <div class="modal-backdrop" id="chartBackdrop"></div>
     <div class="modal-sheet modal-sheet--chart">
       <div class="modal-header">
-        <h2 id="chartTitle">📈 Price Trend</h2>
+        <div class="chart-title-group">
+          <h2 id="chartTitle">📈 Price Trend</h2>
+          <div id="chartPriceDisplay" class="chart-price-display"></div>
+        </div>
         <button class="icon-btn" id="closeChart" aria-label="Close chart">✕</button>
+      </div>
+      <div id="chartRangeTabs" class="chart-range-tabs" role="tablist" aria-label="时间范围">
+        <button class="range-tab active" data-range="1d" role="tab" aria-selected="true">1日</button>
+        <button class="range-tab" data-range="5d" role="tab" aria-selected="false">5日</button>
+        <button class="range-tab" data-range="1mo" role="tab" aria-selected="false">1个月</button>
+        <button class="range-tab" data-range="1y" role="tab" aria-selected="false">1年</button>
+        <button class="range-tab" data-range="5y" role="tab" aria-selected="false">5年</button>
+        <button class="range-tab" data-range="max" role="tab" aria-selected="false">最大值</button>
       </div>
       <div class="modal-body">
         <div class="chart-meta" id="chartMeta"></div>

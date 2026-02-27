@@ -505,6 +505,68 @@ input[type="checkbox"] {
 .btn-secondary:hover { background: #F0F2F5; }
 
 /* ---- Chart area ---- */
+.chart-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.chart-price-display {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 1.2em;
+}
+
+.chart-price-val {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.chart-price-change {
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.chart-price-change.pos { color: var(--positive); }
+.chart-price-change.neg { color: var(--negative); }
+
+/* ---- Chart Range Tabs ---- */
+.chart-range-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 6px 18px;
+  border-bottom: 1px solid rgba(0,0,0,0.07);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.chart-range-tabs::-webkit-scrollbar { display: none; }
+
+.range-tab {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-family: var(--font);
+  padding: 4px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+.range-tab:hover { background: rgba(0,0,0,0.05); }
+.range-tab.active {
+  background: var(--gold-dim);
+  color: var(--gold);
+  font-weight: 600;
+  border-color: var(--gold-border);
+}
+
 .chart-meta {
   font-size: 0.74rem;
   color: var(--text-muted);
@@ -514,15 +576,15 @@ input[type="checkbox"] {
 
 .chart-container {
   position: relative;
-  height: clamp(168px, 32vh, 260px);
+  height: clamp(200px, 40vh, 320px);
   width: 100%;
 }
 
 .chart-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-top: 12px;
+  gap: 6px;
+  margin-top: 10px;
 }
 
 .stat-item {
@@ -530,7 +592,7 @@ input[type="checkbox"] {
   background: linear-gradient(180deg, #FBFCFF, #F6F8FC);
   border: 1px solid rgba(0,0,0,0.06);
   border-radius: var(--radius-sm);
-  padding: 8px 4px;
+  padding: 6px 4px;
 }
 
 .stat-label {
@@ -541,7 +603,7 @@ input[type="checkbox"] {
 }
 
 .stat-value {
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   font-weight: 700;
   color: var(--text);
   margin-top: 2px;
@@ -577,4 +639,5 @@ input[type="checkbox"] {
 @media (min-width: 1200px) {
   .cards-grid { grid-auto-columns: minmax(210px, 1fr); gap: 13px; }
   .modal-sheet--chart { width: min(86vw, 760px); max-width: 760px; }
+  .chart-stats { grid-template-columns: repeat(6, 1fr); }
 }
