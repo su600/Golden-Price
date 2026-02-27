@@ -232,7 +232,8 @@ app.get('/api/history/:symbol', async (req, res) => {
     console.log(`[history] ${symbol} ${interval}/${range} | Status: ${status} | ${Date.now() - start}ms`);
     try {
       res.status(status).json(JSON.parse(body));
-    } catch (_) {
+    } catch (parseErr) {
+      console.error(`[history] ${symbol} JSON parse error: ${parseErr.message} | body snippet: ${body.slice(0, 120)}`);
       res.status(502).json({ error: 'Invalid JSON from Yahoo Finance' });
     }
   } catch (err) {
