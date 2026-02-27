@@ -9,10 +9,12 @@ Key features:
 - 🐉 **Shanghai Composite (SSE)** and 🌸 **Hang Seng (HSI)** Asian indices
 - 🇨🇳 Automatic **gold price in CNY/gram** conversion
 - 📊 **Trend sparklines** on every card + full interactive chart on tap
+- 🧩 **Two-row card layout** with smooth horizontal scrolling for dense market overviews
+- 📐 **Optimized trend chart sizing** for better readability on both mobile and desktop
 - ⚙️ **Configurable Brave API key** — stored locally in `localStorage`, sent only to your own server (as a request header) which forwards it to the Brave API; never placed in URLs or server logs
 - ⏱️ Configurable **auto-refresh** interval (5 min → 1 hr)
 - 📱 **Installable PWA** — works offline (serves cached UI)
-- 🌙 Dark gold theme, responsive grid layout, rounded cards
+- 🎨 **Premium light UI** with responsive spacing, polished cards, and mobile/PC adaptive styling
 
 ---
 
@@ -50,7 +52,7 @@ Golden-Price/
 ├── package.json
 └── public/
     ├── index.html     # App shell
-    ├── styles.css     # Dark gold theme
+    ├── styles.css     # Responsive premium light theme (mobile + desktop)
     ├── app.js         # Data fetching, parsing, charts, history
     ├── manifest.json  # PWA manifest
     ├── sw.js          # Service worker (offline caching)
@@ -76,4 +78,13 @@ The Express server reads your Brave API key from the `X-Api-Key` request header 
 
 Financial prices are extracted from Brave Search result snippets using item-specific regex patterns with a valid-range guard.  
 Historical data points (up to 48 per metric) are stored in `localStorage` for sparkline and trend charts.
+
+---
+
+## UI Notes (Latest)
+
+- Cards are displayed in a **fixed two-row layout** and scroll horizontally when needed.
+- The trend chart modal uses a **responsive container** (`clamp`-based height) for balanced chart proportions.
+- The page is tuned for **mobile and desktop** with breakpoint-based spacing, typography, and card widths.
+- Visual polish includes a soft gradient background, glass-like sticky header, and refined hover/focus states.
 
