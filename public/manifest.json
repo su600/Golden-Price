@@ -1,0 +1,18 @@
+{
+  "name": "Golden-Price",
+  "short_name": "GoldPrice",
+  "description": "Real-time financial price tracker: gold, silver, oil, stocks & more via Brave Search",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0e27",
+  "theme_color": "#FFD700",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
