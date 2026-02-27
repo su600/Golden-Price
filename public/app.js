@@ -507,11 +507,19 @@ async function searchBrave(query) {
   apiCallsMade++;
   document.getElementById('apiCallCount').textContent = `${apiCallsMade} API calls`;
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || `HTTP ${res.status}`);
+  let data;
+  try {
+    data = await res.json();
+  } catch (_e) {
+    throw new Error(`HTTP ${res.status}: Failed to parse API response`);
   }
-  return res.json();
+
+  // Propagate both HTTP-error and application-level error payloads
+  if (!res.ok || (data && typeof data === 'object' && Object.prototype.hasOwnProperty.call(data, 'error'))) {
+    throw new Error(data.error || `HTTP ${res.status}`);
+  }
+
+  return data;
 }
 
 async function fetchItem(item) {
@@ -543,6 +551,7 @@ async function refreshData() {
       updateCard(item.id, price, change);
     } catch (err) {
       setCardError(item.id, err.message);
+      showError(`${item.emoji} ${item.name}: ${err.message}`);
       console.error(`[${item.id}]`, err);
     }
     await sleep(400); // gentle throttle between requests

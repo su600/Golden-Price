@@ -37,7 +37,6 @@ app.get('/api/search', (req, res) => {
     headers: {
       'X-Subscription-Token': apiKey,
       Accept: 'application/json',
-      'Accept-Encoding': 'gzip',
     },
   };
 
@@ -51,7 +50,7 @@ app.get('/api/search', (req, res) => {
         res.status(proxyRes.statusCode).json(parsed);
       } catch (parseErr) {
         console.error('[proxy] JSON parse error:', parseErr.message, '| raw:', body.slice(0, 100));
-        res.status(502).json({ error: 'Invalid JSON from Brave API', raw: body.slice(0, 200) });
+        res.status(502).json({ error: 'Invalid JSON from Brave API' });
       }
     });
   });

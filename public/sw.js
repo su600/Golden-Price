@@ -3,6 +3,7 @@ const STATIC_ASSETS = [
   '/',
   '/styles.css',
   '/app.js',
+  '/chart.js',
   '/manifest.json',
   '/icons/icon.svg',
 ];
@@ -27,7 +28,16 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   // Network-first for API calls; cache-first for static assets
   if (request.url.includes('/api/')) {
-    event.respondWith(fetch(request).catch(() => new Response('{"error":"offline"}', { headers: { 'Content-Type': 'application/json' } })));
+    event.respondWith(
+      fetch(request).catch(
+        () =>
+          new Response('{"error":"offline"}', {
+            status: 503,
+            statusText: 'Service Unavailable',
+            headers: { 'Content-Type': 'application/json' },
+          })
+      )
+    );
   } else {
     event.respondWith(
       caches.match(request).then((cached) => cached || fetch(request))

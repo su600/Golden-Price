@@ -9,7 +9,7 @@ Key features:
 - 🐉 **Shanghai Composite (SSE)** and 🌸 **Hang Seng (HSI)** Asian indices
 - 🇨🇳 Automatic **gold price in CNY/gram** conversion
 - 📊 **Trend sparklines** on every card + full interactive chart on tap
-- ⚙️ **Configurable Brave API key** — stored locally, never sent elsewhere
+- ⚙️ **Configurable Brave API key** — stored locally in `localStorage`, sent only to your own server (as a request header) which forwards it to the Brave API; never placed in URLs or server logs
 - ⏱️ Configurable **auto-refresh** interval (5 min → 1 hr)
 - 📱 **Installable PWA** — works offline (serves cached UI)
 - 🌙 Dark gold theme, responsive grid layout, rounded cards
@@ -59,8 +59,8 @@ Golden-Price/
 ```
 
 The browser talks only to `localhost:3000/api/search`.  
-The Express server adds your Brave API key header and forwards to `api.search.brave.com`.  
-**Your API key never leaves your own server.**
+The Express server reads your Brave API key from the `X-Api-Key` request header and forwards it to `api.search.brave.com` as the `X-Subscription-Token` header.  
+**Your API key is never placed in URLs or server logs.**
 
 ---
 
