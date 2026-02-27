@@ -1,11 +1,11 @@
-const CACHE_NAME = 'golden-price-v1';
+const CACHE_NAME = 'golden-price-v2';
 const STATIC_ASSETS = [
   '/',
   '/styles.css',
   '/app.js',
-  '/chart.js',
   '/manifest.json',
   '/icons/icon.svg',
+  'https://code.highcharts.com/highcharts.js',
 ];
 
 self.addEventListener('install', (event) => {

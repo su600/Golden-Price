@@ -415,7 +415,7 @@ function generateCards() {
       <div class="card-price skeleton" id="price-${item.id}">...</div>
       <div class="card-sub" id="sub-${item.id}"></div>
       <div class="card-change neutral" id="change-${item.id}">—</div>
-      <canvas class="card-sparkline" id="spark-${item.id}" aria-hidden="true"></canvas>
+      <div class="card-sparkline" id="spark-${item.id}" aria-hidden="true"></div>
     `;
 
     card.addEventListener('click', () => openTrendChart(item.id));
@@ -427,35 +427,39 @@ function generateCards() {
 }
 
 function initSparkline(id, accent) {
-  const canvas = document.getElementById(`spark-${id}`);
-  if (!canvas || typeof Chart === 'undefined') return;
+  const container = document.getElementById(`spark-${id}`);
+  if (!container || typeof Highcharts === 'undefined') return;
 
-  const ctx = canvas.getContext('2d');
-  sparkCharts[id] = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: [],
-      datasets: [{
-        data: [],
-        borderColor: accent,
-        borderWidth: 1.5,
-        pointRadius: 0,
-        fill: true,
-        backgroundColor: `${accent}18`,
-        tension: 0.4,
-      }],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
+  sparkCharts[id] = Highcharts.chart(container, {
+    chart: {
+      backgroundColor: null,
+      borderWidth: 0,
+      margin: [2, 0, 2, 0],
+      height: 32,
       animation: false,
-      plugins: { legend: { display: false }, tooltip: { enabled: false } },
-      scales: {
-        x: { display: false },
-        y: { display: false },
-      },
-      interaction: { mode: 'none' },
     },
+    title: { text: null },
+    credits: { enabled: false },
+    xAxis: { visible: false },
+    yAxis: { visible: false, endOnTick: false, startOnTick: false },
+    legend: { enabled: false },
+    tooltip: { enabled: false },
+    plotOptions: {
+      area: {
+        animation: false,
+        lineWidth: 1.5,
+        marker: { enabled: false },
+        states: { hover: { enabled: false } },
+        fillColor: {
+          linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
+          stops: [
+            [0, accent + '30'],
+            [1, accent + '00'],
+          ],
+        },
+      },
+    },
+    series: [{ type: 'area', color: accent, data: [] }],
   });
 }
 
@@ -463,9 +467,7 @@ function updateSparkline(id) {
   const chart = sparkCharts[id];
   if (!chart) return;
   const pts = (history[id] || []).slice(-24);
-  chart.data.labels   = pts.map((p) => p.t);
-  chart.data.datasets[0].data = pts.map((p) => p.v);
-  chart.update('none');
+  chart.series[0].setData(pts.map((p) => p.v), true, false);
 }
 
 // ── DOM: Card Data Update ────────────────────────────────────
@@ -699,63 +701,69 @@ function openTrendChart(id) {
   // Destroy previous chart instance
   if (trendChart) { trendChart.destroy(); trendChart = null; }
 
-  const canvas = document.getElementById('trendChart');
-  if (!canvas || typeof Chart === 'undefined') return;
+  const container = document.getElementById('trendChart');
+  if (!container || typeof Highcharts === 'undefined') return;
 
-  const gradient = canvas.getContext('2d').createLinearGradient(0, 0, 0, 240);
-  gradient.addColorStop(0, `${item.accent}44`);
-  gradient.addColorStop(1, `${item.accent}00`);
-
-  trendChart = new Chart(canvas.getContext('2d'), {
-    type: 'line',
-    data: {
-      labels: pts.map((p) => fmtTime(p.t)),
-      datasets: [{
-        label: `${item.name} (${item.unit})`,
-        data: pts.map((p) => p.v),
-        borderColor: item.accent,
-        borderWidth: 2,
-        pointRadius: pts.length > 12 ? 0 : 3,
-        pointBackgroundColor: item.accent,
-        fill: true,
-        backgroundColor: gradient,
-        tension: 0.4,
-      }],
+  trendChart = Highcharts.chart(container, {
+    chart: {
+      backgroundColor: null,
+      animation: { duration: 300 },
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          mode: 'index',
-          intersect: false,
-          backgroundColor: 'rgba(15,20,48,0.92)',
-          borderColor: item.accent,
-          borderWidth: 1,
-          titleColor: '#b0b8d0',
-          bodyColor: '#f0f0f0',
-          callbacks: {
-            label: (ctx) => ` ${fmt(ctx.parsed.y)} ${item.unit}`,
-          },
-        },
+    title: { text: null },
+    credits: { enabled: false },
+    xAxis: {
+      categories: pts.map((p) => fmtTime(p.t)),
+      labels: {
+        style: { color: '#5A6478', fontSize: '10px' },
+        step: Math.max(1, Math.floor(pts.length / 6)),
       },
-      scales: {
-        x: {
-          ticks: { color: '#4a5268', maxTicksLimit: 6, font: { size: 10 } },
-          grid: { color: 'rgba(255,255,255,0.04)' },
-        },
-        y: {
-          ticks: { color: '#4a5268', font: { size: 10 } },
-          grid: { color: 'rgba(255,255,255,0.06)' },
-        },
+      lineColor: 'rgba(0,0,0,0.1)',
+      tickColor: 'transparent',
+    },
+    yAxis: {
+      title: { text: null },
+      labels: { style: { color: '#5A6478', fontSize: '10px' } },
+      gridLineColor: 'rgba(0,0,0,0.06)',
+    },
+    tooltip: {
+      backgroundColor: 'rgba(15,20,48,0.92)',
+      borderColor: item.accent,
+      borderWidth: 1,
+      style: { color: '#f0f0f0' },
+      formatter: function () {
+        return `<b>${this.x}</b><br/>${fmt(this.y)} ${item.unit}`;
       },
     },
+    legend: { enabled: false },
+    plotOptions: {
+      area: {
+        fillColor: {
+          linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
+          stops: [
+            [0, item.accent + '44'],
+            [1, item.accent + '00'],
+          ],
+        },
+        lineWidth: 2,
+        marker: {
+          enabled: pts.length <= 12,
+          radius: 3,
+          fillColor: item.accent,
+        },
+        states: { hover: { lineWidth: 2 } },
+      },
+    },
+    series: [{
+      type: 'area',
+      color: item.accent,
+      data: pts.map((p) => p.v),
+    }],
   });
 }
 
 function closeTrendChart() {
   document.getElementById('chartModal').classList.remove('open');
+  if (trendChart) { trendChart.destroy(); trendChart = null; }
 }
 
 // ── Settings Modal ───────────────────────────────────────────

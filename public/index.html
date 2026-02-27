@@ -16,8 +16,8 @@
   <!-- Styles -->
   <link rel="stylesheet" href="/styles.css" />
 
-  <!-- Chart.js for sparklines & trend charts (self-hosted, works offline) -->
-  <script src="/chart.js" defer></script>
+  <!-- Highcharts for sparklines & trend charts -->
+  <script src="https://code.highcharts.com/highcharts.js"></script>
   <script src="/app.js" defer></script>
 </head>
 <body>
@@ -116,7 +116,7 @@
       <div class="modal-body">
         <div class="chart-meta" id="chartMeta"></div>
         <div class="chart-container">
-          <canvas id="trendChart"></canvas>
+          <div id="trendChart"></div>
         </div>
         <div class="chart-stats" id="chartStats"></div>
       </div>
