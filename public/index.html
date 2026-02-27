@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Golden-Price 💰</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#FFD700" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="apple-touch-icon" href="/icons/icon.svg" />
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/styles.css" />
+
+  <!-- Chart.js for sparklines & trend charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">💰</span>
+        <span class="logo-text">Golden-Price</span>
+      </div>
+      <div class="header-actions">
+        <button id="refreshBtn" class="icon-btn" title="Refresh data" aria-label="Refresh">
+          <span id="refreshIcon">🔄</span>
+        </button>
+        <button id="settingsBtn" class="icon-btn" title="Settings" aria-label="Settings">⚙️</button>
+      </div>
+    </div>
+    <div class="status-bar">
+      <span id="lastUpdated" class="last-updated">Not yet loaded</span>
+      <span id="apiCallCount" class="api-calls"></span>
+    </div>
+  </header>
+
+  <!-- ===== MAIN CONTENT ===== -->
+  <main class="main-content">
+    <!-- No-API-Key alert -->
+    <div id="noApiAlert" class="alert alert-warn" hidden>
+      ⚠️ Please set your <strong>Brave API key</strong> in settings before loading prices.
+      <button class="alert-btn" id="alertSettingsBtn">Open Settings</button>
+    </div>
+
+    <!-- Error alert -->
+    <div id="errorAlert" class="alert alert-error" hidden>
+      <span id="errorMsg"></span>
+      <button class="alert-btn" onclick="document.getElementById('errorAlert').hidden=true">✕</button>
+    </div>
+
+    <!-- Cards grid — populated by JavaScript -->
+    <div class="cards-grid" id="cardsGrid"></div>
+  </main>
+
+  <!-- ===== SETTINGS MODAL ===== -->
+  <div id="settingsModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <div class="modal-backdrop" id="settingsBackdrop"></div>
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <h2 id="settingsTitle">⚙️ Settings</h2>
+        <button class="icon-btn" id="closeSettings" aria-label="Close settings">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="apiKeyInput">🔑 Brave Search API Key</label>
+          <div class="input-row">
+            <input type="password" id="apiKeyInput" placeholder="BSA…" autocomplete="off" />
+            <button class="icon-btn small" id="toggleApiKey" title="Show/hide key" aria-label="Toggle visibility">👁</button>
+          </div>
+          <p class="hint">
+            Get a free key at
+            <a href="https://api.search.brave.com" target="_blank" rel="noopener">api.search.brave.com</a>
+          </p>
+        </div>
+
+        <div class="form-group">
+          <label for="refreshInterval">⏱️ Auto-refresh Interval</label>
+          <select id="refreshInterval">
+            <option value="0">Manual only</option>
+            <option value="300">5 minutes</option>
+            <option value="600">10 minutes</option>
+            <option value="1800" selected>30 minutes</option>
+            <option value="3600">1 hour</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>📊 Enabled Items</label>
+          <div class="checkbox-grid" id="enabledItemsGrid">
+            <!-- populated by JS -->
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="clearHistory">🗑️ Clear History</button>
+        <button class="btn-primary" id="saveSettings">💾 Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TREND CHART MODAL ===== -->
+  <div id="chartModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="chartTitle">
+    <div class="modal-backdrop" id="chartBackdrop"></div>
+    <div class="modal-sheet modal-sheet--chart">
+      <div class="modal-header">
+        <h2 id="chartTitle">📈 Price Trend</h2>
+        <button class="icon-btn" id="closeChart" aria-label="Close chart">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="chart-meta" id="chartMeta"></div>
+        <div class="chart-container">
+          <canvas id="trendChart"></canvas>
+        </div>
+        <div class="chart-stats" id="chartStats"></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
