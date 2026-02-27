@@ -19,6 +19,8 @@ const ITEMS = [
     emoji: '🥇',
     name: 'Gold',
     name_zh: '黄金',
+    ticker: 'GC=F',
+    sina: 'XAUUSD',
     query: 'gold price per troy ounce USD today spot XAU',
     unit: 'USD/oz',
     accent: '#FFD700',
@@ -30,6 +32,8 @@ const ITEMS = [
     emoji: '🥈',
     name: 'Silver',
     name_zh: '白银',
+    ticker: 'SI=F',
+    sina: 'XAGUSD',
     query: 'silver price per troy ounce USD today spot XAG',
     unit: 'USD/oz',
     accent: '#C0C0C0',
@@ -40,6 +44,8 @@ const ITEMS = [
     emoji: '🛢️',
     name: 'Crude Oil',
     name_zh: '原油',
+    ticker: 'CL=F',
+    sina: 'gb_cl',
     query: 'WTI crude oil price per barrel USD today',
     unit: 'USD/bbl',
     accent: '#8B4513',
@@ -50,6 +56,8 @@ const ITEMS = [
     emoji: '💵',
     name: 'USD/CNY',
     name_zh: '美元/人民币',
+    ticker: 'USDCNY=X',
+    sina: 'fx_susdcny',
     query: '1 US Dollar to Chinese Yuan exchange rate today USD CNY',
     unit: 'CNY',
     accent: '#DC143C',
@@ -60,6 +68,8 @@ const ITEMS = [
     emoji: '💶',
     name: 'EUR/USD',
     name_zh: '欧元/美元',
+    ticker: 'EURUSD=X',
+    sina: 'fx_seurusd',
     query: '1 Euro to US Dollar exchange rate today EUR USD',
     unit: 'USD',
     accent: '#4169E1',
@@ -70,6 +80,8 @@ const ITEMS = [
     emoji: '💷',
     name: 'GBP/USD',
     name_zh: '英镑/美元',
+    ticker: 'GBPUSD=X',
+    sina: 'fx_sgbpusd',
     query: '1 British Pound to US Dollar exchange rate today GBP USD',
     unit: 'USD',
     accent: '#6A0DAD',
@@ -80,6 +92,8 @@ const ITEMS = [
     emoji: '📈',
     name: 'S&P 500',
     name_zh: '标普500',
+    ticker: '^GSPC',
+    sina: 'gb_inx',
     query: 'S&P 500 index SPX price today stock market',
     unit: 'pts',
     accent: '#228B22',
@@ -90,6 +104,8 @@ const ITEMS = [
     emoji: '🏭',
     name: 'Dow Jones',
     name_zh: '道琼斯',
+    ticker: '^DJI',
+    sina: 'gb_dji',
     query: 'Dow Jones Industrial Average DJIA index today',
     unit: 'pts',
     accent: '#4169E1',
@@ -100,6 +116,8 @@ const ITEMS = [
     emoji: '💻',
     name: 'NASDAQ',
     name_zh: '纳斯达克',
+    ticker: '^IXIC',
+    sina: 'gb_ixic',
     query: 'NASDAQ Composite index IXIC today stock market',
     unit: 'pts',
     accent: '#9370DB',
@@ -110,6 +128,8 @@ const ITEMS = [
     emoji: '🐉',
     name: 'Shanghai',
     name_zh: '上证指数',
+    ticker: '000001.SS',
+    sina: 'sh000001',
     query: 'Shanghai Composite SSE index 000001.SS 上证综指 today',
     unit: 'pts',
     accent: '#FF4500',
@@ -120,6 +140,8 @@ const ITEMS = [
     emoji: '🌸',
     name: 'Hang Seng',
     name_zh: '恒生指数',
+    ticker: '^HSI',
+    sina: 'hkHSI',
     query: 'Hang Seng Index HSI Hong Kong stock market today',
     unit: 'pts',
     accent: '#FF6347',
@@ -499,6 +521,36 @@ function setCardError(id, msg) {
 }
 
 // ── Data Fetching ────────────────────────────────────────────
+// Sina Finance bulk fetch — single request for all items, works in China
+let sinaCache = null;  // { data, ts }
+async function fetchSinaAll() {
+  // Reuse data if fetched within the last 5 s (multiple cards call this in a loop)
+  if (sinaCache && Date.now() - sinaCache.ts < 5000) return sinaCache.data;
+  const res = await fetch('/api/sina/quotes');
+  if (!res.ok) throw new Error(`Sina API error: HTTP ${res.status}`);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  sinaCache = { data, ts: Date.now() };
+  return data;
+}
+
+async function fetchYahoo(item) {
+  const res = await fetch(`/api/quote/${encodeURIComponent(item.ticker)}`);
+  const data = await res.json();
+  if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
+  const result = data?.chart?.result?.[0];
+  if (!result) throw new Error('No data from Yahoo Finance');
+  const meta = result.meta;
+  const price = meta.regularMarketPrice;
+  if (price == null) throw new Error('Price missing in Yahoo response');
+  // change as a number (percent)
+  let change = meta.regularMarketChangePercent ?? null;
+  if (change == null && meta.previousClose && meta.previousClose !== 0) {
+    change = ((price - meta.previousClose) / meta.previousClose) * 100;
+  }
+  return { price, change };
+}
+
 async function searchBrave(query) {
   const url = `/api/search?q=${encodeURIComponent(query)}&count=5`;
   const res = await fetch(url, {
@@ -523,6 +575,26 @@ async function searchBrave(query) {
 }
 
 async function fetchItem(item) {
+  // 1. Try Sina Finance (no API key, fast, works in China)
+  if (item.sina) {
+    try {
+      const all = await fetchSinaAll();
+      const d = all[item.sina];
+      if (d && d.price != null) return { price: d.price, change: d.changePct ?? null };
+      throw new Error('No data for symbol');
+    } catch (sinaErr) {
+      console.warn(`[${item.id}] Sina failed (${sinaErr.message}), trying Yahoo`);
+    }
+  }
+  // 2. Try Yahoo Finance
+  if (item.ticker) {
+    try {
+      return await fetchYahoo(item);
+    } catch (yahooErr) {
+      console.warn(`[${item.id}] Yahoo failed (${yahooErr.message}), falling back to Brave`);
+    }
+  }
+  // 3. Fall back to Brave Search
   const data = await searchBrave(item.query);
   const price  = extractPrice(data, item);
   const change = extractChange(data);
@@ -531,10 +603,8 @@ async function fetchItem(item) {
 
 async function refreshData() {
   if (isRefreshing) return;
-  if (!config.apiKey) {
-    document.getElementById('noApiAlert').hidden = false;
-    return;
-  }
+  // Show advisory if no Brave API key, but still proceed via Yahoo Finance
+  document.getElementById('noApiAlert').hidden = !!config.apiKey;
 
   isRefreshing = true;
   const refreshIcon = document.getElementById('refreshIcon');
