@@ -23,6 +23,7 @@ Key features:
 ### Prerequisites
 - Node.js ≥ 18
 - A free [Brave Search API key](https://api.search.brave.com)
+- 科学上网
 
 ### Installation
 
