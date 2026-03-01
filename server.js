@@ -109,6 +109,48 @@ app.get('/api/sina/quotes', async (req, res) => {
   }
 });
 
+// ── GoldPrice.org proxy — real-time spot gold & silver prices ──
+// GET /api/goldprice — returns { xauPrice, xagPrice, pcXau, pcXag, chgXau, chgXag }
+app.get('/api/goldprice', async (req, res) => {
+  const options = {
+    hostname: 'data-asg.goldprice.org',
+    path: '/dbXRates/USD',
+    method: 'GET',
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+      'Accept': 'application/json, text/plain, */*',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Origin': 'https://goldprice.org',
+      'Referer': 'https://goldprice.org/',
+    },
+  };
+  const start = Date.now();
+  try {
+    const { status, body } = await httpsGet(options, 15000);
+    console.log(`[goldprice] Status: ${status} | ${Date.now() - start}ms`);
+    try {
+      const parsed = JSON.parse(body);
+      const entry = parsed?.items?.[0];
+      if (!entry) return res.status(502).json({ error: 'No data in goldprice.org response' });
+      res.json({
+        xauPrice: entry.xauPrice,
+        xagPrice: entry.xagPrice,
+        chgXau:   entry.chgXau,
+        chgXag:   entry.chgXag,
+        pcXau:    entry.pcXau,
+        pcXag:    entry.pcXag,
+        ts:       parsed.ts,
+      });
+    } catch (parseErr) {
+      console.warn(`[goldprice] JSON parse error: ${parseErr.message}`);
+      res.status(502).json({ error: 'Invalid JSON from goldprice.org' });
+    }
+  } catch (err) {
+    console.error(`[goldprice] error: ${err.message}`);
+    res.status(504).json({ error: err.message === 'timeout' ? 'Request timed out' : `Request failed: ${err.message}` });
+  }
+});
+
 // ── Connectivity ping ─────────────────────────────────────── 
 // GET /api/ping?host=sina|yahoo|brave
 app.get('/api/ping', async (req, res) => {

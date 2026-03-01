@@ -537,6 +537,37 @@ async function fetchSinaAll() {
   return data;
 }
 
+// GoldPrice.org — accurate real-time spot price for gold & silver
+let goldPriceOrgCache = null;  // { data, ts }
+async function fetchGoldPriceOrg(item) {
+  // Reuse data if fetched within the last 5 s
+  if (goldPriceOrgCache && Date.now() - goldPriceOrgCache.ts < 5000) {
+    return extractGoldPriceOrgData(goldPriceOrgCache.data, item);
+  }
+  const res = await fetch('/api/goldprice');
+  if (!res.ok) throw new Error(`GoldPrice API error: HTTP ${res.status}`);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  goldPriceOrgCache = { data, ts: Date.now() };
+  return extractGoldPriceOrgData(data, item);
+}
+
+function extractGoldPriceOrgData(data, item) {
+  if (item.id === 'gold') {
+    const price = parseFloat(data.xauPrice);
+    const change = data.pcXau != null ? parseFloat(data.pcXau) : null;
+    if (isNaN(price) || price <= 0) throw new Error('Invalid gold price from goldprice.org');
+    return { price, change: isNaN(change) ? null : change };
+  }
+  if (item.id === 'silver') {
+    const price = parseFloat(data.xagPrice);
+    const change = data.pcXag != null ? parseFloat(data.pcXag) : null;
+    if (isNaN(price) || price <= 0) throw new Error('Invalid silver price from goldprice.org');
+    return { price, change: isNaN(change) ? null : change };
+  }
+  throw new Error('Not a gold/silver item');
+}
+
 async function fetchYahoo(item) {
   const res = await fetch(`/api/quote/${encodeURIComponent(item.ticker)}`);
   const data = await res.json();
@@ -578,6 +609,14 @@ async function searchBrave(query) {
 }
 
 async function fetchItem(item) {
+  // 0. Try goldprice.org for gold and silver — accurate real-time spot price
+  if (item.id === 'gold' || item.id === 'silver') {
+    try {
+      return await fetchGoldPriceOrg(item);
+    } catch (gpErr) {
+      console.warn(`[${item.id}] GoldPrice.org failed (${gpErr.message}), trying Sina`);
+    }
+  }
   // 1. Try Sina Finance (no API key, fast, works in China)
   if (item.sina) {
     try {
@@ -820,8 +859,8 @@ function closeSettings() {
 
 function saveSettings() {
   const key = document.getElementById('apiKeyInput').value.trim();
-  if (!key) { alert('Please enter your Brave API key.'); return; }
-
+  // API key is optional — Sina Finance and Yahoo Finance work without one.
+  // An empty key clears any previously saved key, disabling Brave Search fallback.
   config.apiKey          = key;
   config.refreshInterval = parseInt(document.getElementById('refreshInterval').value, 10);
   config.enabledItems    = ITEMS
@@ -901,12 +940,12 @@ function init() {
 
   if (!config.apiKey) {
     document.getElementById('noApiAlert').hidden = false;
-    // Auto-open settings on first visit
-    setTimeout(openSettings, 300);
-  } else {
-    startAutoRefresh();
-    refreshData();
+    // Only auto-open settings on very first visit (no history yet)
+    if (!Object.keys(history).length) setTimeout(openSettings, 300);
   }
+  // Always start auto-refresh and load data; Sina Finance works without an API key
+  startAutoRefresh();
+  refreshData();
 }
 
 // Register service worker
