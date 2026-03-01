@@ -135,7 +135,7 @@ The Express server reads your Brave API key from the `X-Api-Key` request header 
 
 ## Data Parsing
 
-- **GoldPrice.org** and **Sina Finance** return structured JSON; prices are read directly from well-known fields.
+- **GoldPrice.org** returns structured JSON; **Sina Finance** upstream (`hq.sinajs.cn`) returns JavaScript-like `var hq_str_...` strings which the server parses and exposes as JSON via `/api/sina/quotes`, where prices are read from well-known fields.
 - **Yahoo Finance** (`/v8/finance/chart`) returns `meta.regularMarketPrice` and `meta.regularMarketChangePercent`.
 - **Brave Search** (fallback only) — prices are extracted from search result snippets using item-specific regex patterns with a valid-range guard.
 
