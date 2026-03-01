@@ -38,9 +38,45 @@ Open **http://localhost:3000** in your browser.
 
 On first launch the settings panel opens automatically — paste your Brave API key and tap **Save**.
 
+### Docker 部署
+
+**前提条件：** 已安装 [Docker](https://docs.docker.com/get-docker/)
+
+**构建镜像**
+
+```bash
+docker build -t golden-price .
+```
+
+**运行容器（映射到宿主机 7000 端口）**
+
+```bash
+docker run -d --name golden-price -p 7000:7000 golden-price
+```
+
+访问 **http://localhost:7000** 即可打开应用。
+
+**常用命令**
+
+```bash
+# 查看容器状态
+docker ps
+
+# 查看日志
+docker logs -f golden-price
+
+# 停止容器
+docker stop golden-price
+
+# 删除容器
+docker rm golden-price
+```
+
+> 镜像基于 `node:18-alpine`，体积约 60–70 MB，无多余依赖。
+
 ### Install as PWA (Mobile)
 
-1. Open `http://<your-server>:3000` in Chrome/Safari on your phone.
+1. Open `http://<your-server>:7000` in Chrome/Safari on your phone.
 2. Chrome → "Add to Home screen"; Safari → Share → "Add to Home Screen".
 
 ---
@@ -61,7 +97,8 @@ Golden-Price/
         └── icon.svg   # App icon
 ```
 
-The browser talks only to `localhost:3000/api/search`.  
+The browser talks only to the server's `/api/search`.  
+In local development this is `http://localhost:3000/api/search`; when deployed via Docker it becomes `http://localhost:7000/api/search`.  
 The Express server reads your Brave API key from the `X-Api-Key` request header and forwards it to `api.search.brave.com` as the `X-Subscription-Token` header.  
 **Your API key is never placed in URLs or server logs.**
 
@@ -71,7 +108,7 @@ The Express server reads your Brave API key from the `X-Api-Key` request header 
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `PORT`   | `3000`  | HTTP port   |
+| `PORT`   | `3000`  | HTTP port for local development; the Dockerfile overrides this to `7000` |
 
 ---
 
