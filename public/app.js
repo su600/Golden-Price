@@ -280,7 +280,6 @@ function buildTextCorpus(braveData) {
 }
 
 function getPricePatterns(id) {
-  const DOLLAR  = /\$\s*/;
   switch (id) {
     case 'gold':
       return [
@@ -524,16 +523,29 @@ function setCardError(id, msg) {
 
 // ── Data Fetching ────────────────────────────────────────────
 // Sina Finance bulk fetch — single request for all items, works in China
-let sinaCache = null;  // { data, ts }
+let sinaCache   = null;  // { data, ts }
+let sinaPending = null;  // in-flight promise (deduplicates concurrent calls)
 async function fetchSinaAll() {
-  // Reuse data if fetched within the last 5 s (multiple cards call this in a loop)
+  // Reuse data if fetched within the last 5 s
   if (sinaCache && Date.now() - sinaCache.ts < 5000) return sinaCache.data;
-  const res = await fetch('/api/sina/quotes');
-  if (!res.ok) throw new Error(`Sina API error: HTTP ${res.status}`);
-  const data = await res.json();
-  if (data.error) throw new Error(data.error);
-  sinaCache = { data, ts: Date.now() };
-  return data;
+  // Deduplicate: if a fetch is already in flight, share its promise
+  if (sinaPending) return sinaPending;
+  sinaPending = fetch('/api/sina/quotes')
+    .then((res) => {
+      if (!res.ok) throw new Error(`Sina API error: HTTP ${res.status}`);
+      return res.json();
+    })
+    .then((data) => {
+      if (data.error) throw new Error(data.error);
+      sinaCache   = { data, ts: Date.now() };
+      sinaPending = null;
+      return data;
+    })
+    .catch((err) => {
+      sinaPending = null;
+      throw err;
+    });
+  return sinaPending;
 }
 
 async function fetchYahoo(item) {
@@ -615,19 +627,23 @@ async function refreshData() {
   const enabled = ITEMS.filter((i) => config.enabledItems.includes(i.id));
   const prices  = {};
 
-  for (const item of enabled) {
-    setCardLoading(item.id);
-    try {
-      const { price, change } = await fetchItem(item);
-      prices[item.id] = price;
-      updateCard(item.id, price, change);
-    } catch (err) {
-      setCardError(item.id, err.message);
-      showError(`${item.emoji} ${item.name}: ${err.message}`);
-      console.error(`[${item.id}]`, err);
-    }
-    await sleep(400); // gentle throttle between requests
-  }
+  // Set all cards to loading state upfront
+  enabled.forEach((item) => setCardLoading(item.id));
+
+  // Fetch all items in parallel — Sina bulk data is deduplicated via sinaPending
+  await Promise.allSettled(
+    enabled.map(async (item) => {
+      try {
+        const { price, change } = await fetchItem(item);
+        prices[item.id] = price;
+        updateCard(item.id, price, change);
+      } catch (err) {
+        setCardError(item.id, err.message);
+        showError(`${item.emoji} ${item.name}: ${err.message}`);
+        console.error(`[${item.id}]`, err);
+      }
+    })
+  );
 
   // Gold → CNY/g sub-label
   const goldPrice  = prices['gold'];
@@ -795,9 +811,9 @@ function closeSettings() {
 
 function saveSettings() {
   const key = document.getElementById('apiKeyInput').value.trim();
-  if (!key) { alert('Please enter your Brave API key.'); return; }
+  // Preserve existing key if the input is cleared
+  if (key) config.apiKey = key;
 
-  config.apiKey          = key;
   config.refreshInterval = parseInt(document.getElementById('refreshInterval').value, 10);
   config.enabledItems    = ITEMS
     .filter((item) => document.getElementById(`cb-${item.id}`)?.checked)

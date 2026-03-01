@@ -38,6 +38,10 @@ const SINA_SYMBOLS = [
   'hkHSI',       // Hang Seng
 ];
 
+// Server-side cache for Sina responses — avoids hammering the upstream API
+let sinaServerCache = null; // { result, ts }
+const SINA_CACHE_TTL = 30000; // 30 seconds
+
 // Parse a single Sina Finance line:  var hq_str_SYMBOL="f0,f1,...";
 function parseSinaLine(symbol, fields) {
   if (!fields || fields.length < 4) return null;
@@ -73,6 +77,11 @@ function parseSinaLine(symbol, fields) {
 }
 
 app.get('/api/sina/quotes', async (req, res) => {
+  // Return cached result if still fresh
+  if (sinaServerCache && Date.now() - sinaServerCache.ts < SINA_CACHE_TTL) {
+    return res.json(sinaServerCache.result);
+  }
+
   const symbolList = SINA_SYMBOLS.join(',');
   const options = {
     hostname: 'hq.sinajs.cn',
@@ -102,6 +111,7 @@ app.get('/api/sina/quotes', async (req, res) => {
       const parsed = parseSinaLine(sym, fields);
       if (parsed) result[sym] = parsed;
     }
+    sinaServerCache = { result, ts: Date.now() };
     res.json(result);
   } catch (err) {
     console.error(`[sina] error: ${err.message}`);
