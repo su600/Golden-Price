@@ -1,7 +1,8 @@
 /* ============================================================
    Golden-Price — Main Application
-   Fetches financial data via Brave Search API proxy,
-   renders cards with sparklines, and manages history/settings.
+   Fetches financial data from multiple sources in priority order:
+   GoldPrice.org → Sina Finance → Yahoo Finance → Brave Search API.
+   Renders cards with sparklines and manages history/settings.
    ============================================================ */
 
 'use strict';
