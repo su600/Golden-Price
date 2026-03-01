@@ -660,9 +660,12 @@ function applyTheme(theme) {
   const validTheme = theme === 'dark' ? 'dark' : 'light';
   document.documentElement.setAttribute('data-theme', validTheme);
   const btn = document.getElementById('themeBtn');
-  if (btn) btn.textContent = validTheme === 'dark' ? '☀️' : '🌙';
+  if (btn) {
+    btn.textContent = validTheme === 'dark' ? '☀️' : '🌙';
+    btn.setAttribute('aria-pressed', validTheme === 'dark' ? 'true' : 'false');
+  }
   const metaTheme = document.querySelector('meta[name="theme-color"]');
-  if (metaTheme) metaTheme.content = validTheme === 'dark' ? '#0F1117' : '#FFFFFF';
+  if (metaTheme) metaTheme.content = validTheme === 'dark' ? '#0F1117' : '#F2F4F7';
 }
 
 function toggleTheme() {
