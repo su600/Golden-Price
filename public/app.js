@@ -9,6 +9,7 @@
 // ── Constants ────────────────────────────────────────────────
 const CONFIG_KEY   = 'gp_config_v1';
 const HISTORY_KEY  = 'gp_history_v1';
+const THEME_KEY    = 'gp_theme_v1';
 const MAX_HISTORY  = 48;   // data points kept per item
 const TROY_OZ_GRAM = 31.1035; // grams per troy ounce
 
@@ -654,6 +655,26 @@ function startAutoRefresh() {
   }
 }
 
+// ── Theme Management ─────────────────────────────────────────
+function applyTheme(theme) {
+  const validTheme = theme === 'dark' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', validTheme);
+  const btn = document.getElementById('themeBtn');
+  if (btn) {
+    btn.textContent = validTheme === 'dark' ? '☀️' : '🌙';
+    btn.setAttribute('aria-pressed', validTheme === 'dark' ? 'true' : 'false');
+  }
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
+  if (metaTheme) metaTheme.content = validTheme === 'dark' ? '#0F1117' : '#F2F4F7';
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'light';
+  const next = current === 'dark' ? 'light' : 'dark';
+  localStorage.setItem(THEME_KEY, next);
+  applyTheme(next);
+}
+
 // ── Trend Chart Modal ────────────────────────────────────────
 function openTrendChart(id) {
   const item = ITEMS.find((i) => i.id === id);
@@ -704,6 +725,10 @@ function openTrendChart(id) {
   const container = document.getElementById('trendChart');
   if (!container || typeof Highcharts === 'undefined') return;
 
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const chartTextColor = isDark ? '#9099B0' : '#5A6478';
+  const chartGridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+
   trendChart = Highcharts.chart(container, {
     chart: {
       backgroundColor: null,
@@ -714,16 +739,16 @@ function openTrendChart(id) {
     xAxis: {
       categories: pts.map((p) => fmtTime(p.t)),
       labels: {
-        style: { color: '#5A6478', fontSize: '10px' },
+        style: { color: chartTextColor, fontSize: '10px' },
         step: Math.max(1, Math.floor(pts.length / 6)),
       },
-      lineColor: 'rgba(0,0,0,0.1)',
+      lineColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
       tickColor: 'transparent',
     },
     yAxis: {
       title: { text: null },
-      labels: { style: { color: '#5A6478', fontSize: '10px' } },
-      gridLineColor: 'rgba(0,0,0,0.06)',
+      labels: { style: { color: chartTextColor, fontSize: '10px' } },
+      gridLineColor: chartGridColor,
     },
     tooltip: {
       backgroundColor: 'rgba(15,20,48,0.92)',
@@ -825,6 +850,10 @@ function saveSettings() {
 function init() {
   loadConfig();
   loadHistory();
+
+  // Apply saved theme before rendering
+  applyTheme(localStorage.getItem(THEME_KEY) || 'light');
+
   generateCards();
 
   // Restore cached prices from history before first network call
@@ -848,6 +877,7 @@ function init() {
   }
 
   // Event listeners
+  document.getElementById('themeBtn').addEventListener('click', toggleTheme);
   document.getElementById('refreshBtn').addEventListener('click', refreshData);
   document.getElementById('settingsBtn').addEventListener('click', openSettings);
   document.getElementById('closeSettings').addEventListener('click', closeSettings);
