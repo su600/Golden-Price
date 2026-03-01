@@ -1,6 +1,8 @@
 # 💰 Golden-Price
 
-A **Progressive Web App (PWA)** for real-time financial data including gold, silver, crude oil, exchange rates, US stocks, Shanghai Composite, and Hang Seng — powered by the **Brave Search API**.
+A **Progressive Web App (PWA)** for real-time financial data including gold, silver, crude oil, exchange rates, US stocks, Shanghai Composite, and Hang Seng.
+
+Data is fetched from multiple sources in priority order: **GoldPrice.org** (gold/silver spot) → **新浪财经 Sina Finance** (all symbols, no API key, works in China) → **Yahoo Finance** (fallback) → **Brave Search API** (optional last-resort fallback).
 
 Key features:
 - 🥇 **Gold, Silver, Crude Oil** spot prices
@@ -11,10 +13,11 @@ Key features:
 - 📊 **Trend sparklines** on every card + full interactive chart on tap
 - 🧩 **Two-row card layout** with smooth horizontal scrolling for dense market overviews
 - 📐 **Optimized trend chart sizing** for better readability on both mobile and desktop
-- ⚙️ **Configurable Brave API key** — stored locally in `localStorage`, sent only to your own server (as a request header) which forwards it to the Brave API; never placed in URLs or server logs
+- 🌐 **Works without any API key** — Sina Finance & GoldPrice.org require no credentials; Brave API key is optional (enables a last-resort search fallback)
+- ⚙️ **Optional Brave API key** — stored locally in `localStorage`, sent only to your own server (as a request header) which forwards it to the Brave API; never placed in URLs or server logs
 - ⏱️ Configurable **auto-refresh** interval (5 min → 1 hr)
 - 📱 **Installable PWA** — works offline (serves cached UI)
-- 🎨 **Premium light UI** with responsive spacing, polished cards, and mobile/PC adaptive styling
+- 🎨 **Premium light/dark UI** with responsive spacing, polished cards, and mobile/PC adaptive styling
 
 ---
 
@@ -22,8 +25,8 @@ Key features:
 
 ### Prerequisites
 - Node.js ≥ 18
-- A free [Brave Search API key](https://api.search.brave.com)
-- 科学上网
+- (Optional) A free [Brave Search API key](https://api.search.brave.com) — only needed if you want Brave Search as a last-resort fallback
+- 科学上网 (required for Yahoo Finance; **not** required for Sina Finance or GoldPrice.org)
 
 ### Installation
 
@@ -36,7 +39,7 @@ npm start
 
 Open **http://localhost:3000** in your browser.
 
-On first launch the settings panel opens automatically — paste your Brave API key and tap **Save**.
+On first launch the settings panel opens automatically. Sina Finance and GoldPrice.org work without any credentials. If you have a Brave Search API key, paste it in settings to enable search-based fallback.
 
 ### Docker 部署
 
@@ -85,11 +88,11 @@ docker rm golden-price
 
 ```
 Golden-Price/
-├── server.js          # Express server — proxies Brave API (solves CORS)
+├── server.js          # Express server — proxies external APIs (solves CORS)
 ├── package.json
 └── public/
     ├── index.html     # App shell
-    ├── styles.css     # Responsive premium light theme (mobile + desktop)
+    ├── styles.css     # Responsive light/dark theme (mobile + desktop)
     ├── app.js         # Data fetching, parsing, charts, history
     ├── manifest.json  # PWA manifest
     ├── sw.js          # Service worker (offline caching)
@@ -97,8 +100,26 @@ Golden-Price/
         └── icon.svg   # App icon
 ```
 
-The browser talks only to the server's `/api/search`.  
-In local development this is `http://localhost:3000/api/search`; when deployed via Docker it becomes `http://localhost:7000/api/search`.  
+### Server-side API endpoints
+
+| Endpoint | Data source | Auth required |
+|----------|------------|---------------|
+| `GET /api/goldprice` | goldprice.org — real-time XAU/XAG spot | None |
+| `GET /api/sina/quotes` | hq.sinajs.cn — bulk quotes for all symbols | None |
+| `GET /api/quote/:symbol` | Yahoo Finance — 5-day chart & latest price | None |
+| `GET /api/search?q=…` | Brave Search API — structured web results | `X-Api-Key` header |
+| `GET /api/ping?host=…` | Connectivity probe (sina / yahoo / brave) | None |
+
+### Client-side data-source priority
+
+For each financial item the browser tries sources in this order and uses the first successful result:
+
+1. **GoldPrice.org** (gold & silver only) — accurate real-time spot price, no key needed
+2. **Sina Finance** — single bulk request for all 11 symbols, no key needed, works in mainland China
+3. **Yahoo Finance** — widely available fallback; may be blocked in China
+4. **Brave Search API** — last-resort search-based extraction; requires an optional API key
+
+The browser talks only to the server's proxy endpoints (`/api/*`).  
 The Express server reads your Brave API key from the `X-Api-Key` request header and forwards it to `api.search.brave.com` as the `X-Subscription-Token` header.  
 **Your API key is never placed in URLs or server logs.**
 
@@ -114,7 +135,10 @@ The Express server reads your Brave API key from the `X-Api-Key` request header 
 
 ## Data Parsing
 
-Financial prices are extracted from Brave Search result snippets using item-specific regex patterns with a valid-range guard.  
+- **GoldPrice.org** returns structured JSON; **Sina Finance** upstream (`hq.sinajs.cn`) returns JavaScript-like `var hq_str_...` strings which the server parses and exposes as JSON via `/api/sina/quotes`, where prices are read from well-known fields.
+- **Yahoo Finance** (`/v8/finance/chart`) returns `meta.regularMarketPrice` and `meta.regularMarketChangePercent`.
+- **Brave Search** (fallback only) — prices are extracted from search result snippets using item-specific regex patterns with a valid-range guard.
+
 Historical data points (up to 48 per metric) are stored in `localStorage` for sparkline and trend charts.
 
 ---
