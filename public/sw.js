@@ -1,4 +1,4 @@
-const CACHE_NAME = 'golden-price-v2';
+const CACHE_NAME = 'golden-price-v3';
 const STATIC_ASSETS = [
   '/',
   '/styles.css',
@@ -10,9 +10,14 @@ const STATIC_ASSETS = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll(STATIC_ASSETS))
+      .then(() => self.skipWaiting())
+      .catch((err) => {
+        console.error('[SW] Install failed:', err);
+        throw err;
+      })
   );
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
@@ -40,7 +45,16 @@ self.addEventListener('fetch', (event) => {
     );
   } else {
     event.respondWith(
-      caches.match(request).then((cached) => cached || fetch(request))
+      caches.match(request).then((cached) => cached || fetch(request).catch(
+        () => {
+          const isNavigate = request.mode === 'navigate';
+          return new Response(isNavigate ? '<h1>Offline</h1>' : 'Offline', {
+            status: 503,
+            statusText: 'Service Unavailable',
+            headers: { 'Content-Type': isNavigate ? 'text/html' : 'text/plain' },
+          });
+        }
+      ))
     );
   }
 });
