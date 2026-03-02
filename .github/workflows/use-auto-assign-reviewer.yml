@@ -1,0 +1,11 @@
+name: Use Auto Assign
+
+on:
+  pull_request:
+    types: [synchronize]
+
+jobs:
+  auto-assign:
+    uses: su600/Golden-Price/.github/workflows/auto-assign.yml@main
+    with:
+      reviewer: su600   # 可以传参覆盖默认值
