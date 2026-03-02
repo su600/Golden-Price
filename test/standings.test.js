@@ -2,7 +2,7 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { parseStandingsFromHtml } = require('../lib/standings');
+const { parseStandingsFromHtml, parseAllStandingsFromHtml } = require('../lib/standings');
 
 // ── helpers ───────────────────────────────────────────────────
 function makeHtml(stateObj) {
@@ -114,4 +114,61 @@ test('handles trailing JavaScript after __INITIAL_STATE__ JSON', () => {
 test('returns empty array when __INITIAL_STATE__ JSON is malformed', () => {
   const html = '<html><script>window.__INITIAL_STATE__={broken json;</script></html>';
   assert.deepEqual(parseStandingsFromHtml(html), []);
+});
+
+// ── parseAllStandingsFromHtml tests ───────────────────────────
+
+test('parseAllStandingsFromHtml: returns empty array for null/empty input', () => {
+  assert.deepEqual(parseAllStandingsFromHtml(null), []);
+  assert.deepEqual(parseAllStandingsFromHtml(''), []);
+});
+
+test('parseAllStandingsFromHtml: returns single group for non-grouped league (PL/LaLiga)', () => {
+  const data = [plEntry(1, '阿森纳', 64), plEntry(2, '曼城', 59)];
+  const html = makeHtml({
+    statListStore: {
+      statListFull: [
+        { template: 'team_point_ranking_regular', content: { data } },
+      ],
+    },
+  });
+  const result = parseAllStandingsFromHtml(html);
+  assert.equal(result.length, 1);
+  assert.equal(result[0].group, '');
+  assert.equal(result[0].data.length, 2);
+  assert.equal(result[0].data[0].team_name, '阿森纳');
+});
+
+test('parseAllStandingsFromHtml: returns multiple groups for UCL group stage', () => {
+  const groupA = [plEntry(1, '利物浦', 12), plEntry(2, '阿贾克斯', 9)];
+  const groupB = [plEntry(1, '拜仁慕尼黑', 15), plEntry(2, '巴塞罗那', 9)];
+  const html = makeHtml({
+    statListStore: {
+      statListFull: [
+        { template: 'team_point_ranking_regular', content: { data: groupA, title: 'A组' } },
+        { template: 'team_point_ranking_regular', content: { data: groupB, title: 'B组' } },
+      ],
+    },
+  });
+  const result = parseAllStandingsFromHtml(html);
+  assert.equal(result.length, 2);
+  assert.equal(result[0].group, 'A组');
+  assert.equal(result[0].data[0].team_name, '利物浦');
+  assert.equal(result[1].group, 'B组');
+  assert.equal(result[1].data[0].team_name, '拜仁慕尼黑');
+});
+
+test('parseAllStandingsFromHtml: skips templates with empty data arrays', () => {
+  const data = [plEntry(1, '皇马', 20)];
+  const html = makeHtml({
+    statListStore: {
+      statListFull: [
+        { template: 'team_point_ranking_regular', content: { data: [], title: '空组' } },
+        { template: 'team_point_ranking_regular', content: { data, title: 'A组' } },
+      ],
+    },
+  });
+  const result = parseAllStandingsFromHtml(html);
+  assert.equal(result.length, 1);
+  assert.equal(result[0].group, 'A组');
 });
