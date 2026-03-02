@@ -21,6 +21,18 @@ Key features:
 
 ---
 
+## Screenshots
+
+| Light Mode (Desktop) | Dark Mode (Desktop) |
+|:---:|:---:|
+| ![Light Mode](docs/screenshots/light-mode.png) | ![Dark Mode](docs/screenshots/dark-mode.png) |
+
+| Settings Panel | Mobile View |
+|:---:|:---:|
+| ![Settings](docs/screenshots/settings.png) | ![Mobile](docs/screenshots/mobile.png) |
+
+---
+
 ## Quick Start
 
 ### Prerequisites
