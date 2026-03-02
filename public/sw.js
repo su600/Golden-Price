@@ -3,7 +3,6 @@ const STATIC_ASSETS = [
   '/',
   '/styles.css',
   '/app.js',
-  '/chart.js',
   '/manifest.json',
   '/icons/icon.svg',
   'https://code.highcharts.com/highcharts.js',
@@ -14,7 +13,10 @@ self.addEventListener('install', (event) => {
     caches.open(CACHE_NAME)
       .then((cache) => cache.addAll(STATIC_ASSETS))
       .then(() => self.skipWaiting())
-      .catch((err) => console.error('[SW] Install failed:', err))
+      .catch((err) => {
+        console.error('[SW] Install failed:', err);
+        throw err;
+      })
   );
 });
 
