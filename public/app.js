@@ -893,7 +893,7 @@ function init() {
   loadHistory();
 
   // Apply saved theme before rendering
-  applyTheme(localStorage.getItem(THEME_KEY) || 'light');
+  applyTheme(localStorage.getItem(THEME_KEY) || 'dark');
 
   generateCards();
 
