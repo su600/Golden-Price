@@ -253,5 +253,5 @@ app.get('/api/search', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`\n  💰 Golden-Price server running at http://localhost:${PORT}\n`);
+  console.log(`\n  💰 Gold-Price server running at http://localhost:${PORT}\n`);
 });

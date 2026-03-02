@@ -1,4 +1,4 @@
-# 💰 Golden-Price
+# 💰 Gold-Price
 
 A **Progressive Web App (PWA)** for real-time financial data including gold, silver, crude oil, exchange rates, US stocks, Shanghai Composite, and Hang Seng.
 
@@ -87,7 +87,7 @@ docker rm golden-price
 ## Architecture
 
 ```
-Golden-Price/
+Gold-Price/
 ├── server.js          # Express server — proxies external APIs (solves CORS)
 ├── package.json
 └── public/

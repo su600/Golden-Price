@@ -464,9 +464,6 @@ function generateCards() {
     card.className = 'fin-card';
     card.id = `card-${item.id}`;
     card.style.setProperty('--card-accent', item.accent);
-    card.setAttribute('role', 'button');
-    card.setAttribute('tabindex', '0');
-    card.setAttribute('aria-label', `${item.name} price chart`);
 
     card.innerHTML = `
       <div class="card-header">
@@ -479,20 +476,28 @@ function generateCards() {
           <button class="card-info-btn" data-id="${item.id}" title="查看数据源" aria-label="数据源">ℹ</button>
         </div>
       </div>
-      <div class="card-price skeleton" id="price-${item.id}">...</div>
-      <div class="card-sub" id="sub-${item.id}"></div>
-      <div class="card-change neutral" id="change-${item.id}">—</div>
-      <div class="card-sparkline" id="spark-${item.id}" aria-hidden="true"></div>
+      <button class="card-body-btn" aria-label="${item.name} price chart">
+        <div class="card-price skeleton" id="price-${item.id}">...</div>
+        <div class="card-sub" id="sub-${item.id}"></div>
+        <div class="card-change neutral" id="change-${item.id}">—</div>
+        <div class="card-sparkline" id="spark-${item.id}" aria-hidden="true"></div>
+      </button>
     `;
 
-    card.addEventListener('click', () => openTrendChart(item.id));
-    card.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') openTrendChart(item.id); });
+    card.querySelector('.card-body-btn').addEventListener('click', () => openTrendChart(item.id));
 
     const infoBtn = card.querySelector('.card-info-btn');
     if (infoBtn) {
       infoBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         openInfoTooltip(item.id, infoBtn);
+      });
+      infoBtn.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          if (e.key === ' ') e.preventDefault(); // avoid page scroll
+          e.stopPropagation();
+          openInfoTooltip(item.id, infoBtn);
+        }
       });
     }
 
@@ -609,10 +614,22 @@ function openInfoTooltip(id, btnEl) {
 
   tooltip.hidden = false;
 
-  // Position the tooltip below the button, clamped to viewport
+  // Position the tooltip near the button, clamped to viewport
   const rect = btnEl.getBoundingClientRect();
   const left = Math.max(4, Math.min(rect.left, window.innerWidth - 244)); // 240px max-width + 4px margin
-  tooltip.style.top  = `${rect.bottom + 6}px`;
+  const margin = 6;
+  const tooltipHeight = tooltip.offsetHeight || 0;
+  let top = rect.bottom + margin; // default: below the button
+
+  // If tooltip would overflow bottom of viewport, flip it above the button
+  if (top + tooltipHeight > window.innerHeight - margin) {
+    top = rect.top - tooltipHeight - margin;
+  }
+
+  // Clamp to stay within viewport (at least 4px from top)
+  top = Math.max(4, top);
+
+  tooltip.style.top  = `${top}px`;
   tooltip.style.left = `${left}px`;
 }
 
@@ -753,8 +770,8 @@ async function refreshData() {
   const prices  = {};
 
   for (const item of enabled) {
+    if (item.derived) continue; // derived items are computed from base prices below
     setCardLoading(item.id);
-    if (item.derived) continue; // derived items are computed from other prices below
     try {
       const { price, change } = await fetchItem(item);
       prices[item.id] = price;
@@ -777,6 +794,9 @@ async function refreshData() {
     if (config.enabledItems.includes('gold_cny')) {
       updateCard('gold_cny', cnyPerGram, null);
     }
+  } else if (config.enabledItems.includes('gold_cny')) {
+    // Base prices unavailable — show N/A on the derived card
+    setCardError('gold_cny', 'N/A');
   }
 
   document.getElementById('lastUpdated').textContent =
