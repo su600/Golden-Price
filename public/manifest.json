@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "Gold-Price",
-  "short_name": "GoldPrice",
-  "description": "Real-time financial price tracker: gold, silver, oil, stocks & more",
+  "name": "Gold Price & Football",
+  "short_name": "Gold & Football",
+  "description": "Real-time financial price tracker and football standings: gold, silver, oil, stocks & more",
   "lang": "zh-CN",
   "start_url": "/",
   "scope": "/",
