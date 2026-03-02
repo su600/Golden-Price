@@ -883,7 +883,12 @@ async function refreshLeagueStandings() {
     await Promise.all(LEAGUES.map(async (league) => {
       try {
         const res  = await fetch(`/api/standings/${league.id}`);
-        const data = await res.json();
+        let data;
+        try {
+          data = await res.json();
+        } catch (_e) {
+          throw new Error(`HTTP ${res.status}: Invalid response`);
+        }
         if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
         renderLeagueStandings(league.id, data.standings);
       } catch (err) {
