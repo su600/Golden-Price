@@ -1,21 +1,24 @@
 name: Auto Assign
 
 on:
-  # 更新(synchronize)时
-  pull_request_target: 
+  pull_request:
     types: [synchronize]
+
+permissions: 
+  pull-requests: write
+  contents: read
 
 jobs:
   request-review-on-copilot-commit:
     runs-on: ubuntu-latest
-    # 使用了 PAT 后，顶部的 permissions 声明其实已经失效（PAT 权限更高）
+    permissions:
+      pull-requests: write
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 2
-          # 1. 使用 PAT 进行检出，确保 git 操作拥有高权限
-          token: ${{ secrets.MY_PAT }}
 
       - name: Check if latest commit is by Copilot
         id: check_author
@@ -23,31 +26,24 @@ jobs:
           AUTHOR_EMAIL=$(git log -1 --pretty=format:'%ae')
           AUTHOR_NAME=$(git log -1 --pretty=format:'%an')
           echo "Latest commit author: $AUTHOR_NAME <$AUTHOR_EMAIL>"
-          if echo "$AUTHOR_EMAIL" | grep -iqE "copilot|github-copilot|codex|claude|actions"; then
+          if echo "$AUTHOR_EMAIL" | grep -iqE "copilot|github-copilot|codex|claude"; then
             echo "is_copilot=true" >> $GITHUB_OUTPUT
-          elif echo "$AUTHOR_NAME" | grep -iqE "copilot|actions"; then
+          elif echo "$AUTHOR_NAME" | grep -iqE "copilot"; then
             echo "is_copilot=true" >> $GITHUB_OUTPUT
           else
             echo "is_copilot=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Request review from su600
-        # 只有检测到是机器人提交时才运行
         if: steps.check_author.outputs.is_copilot == 'true'
         uses: actions/github-script@v7
         with:
-          # 2. 核心修改：将默认 token 换成你的 PAT
-          github-token: ${{ secrets.MY_PAT }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            try {
-              await github.rest.pulls.requestReviewers({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: context.payload.pull_request.number,
-                reviewers: ['su600']
-              });
-              console.log('✅ Review requested from su600 using PAT');
-            } catch (error) {
-              console.log('❌ Failed to request review. Check if su600 is a collaborator.');
-              console.error(error);
-            }
+            await github.rest.pulls.requestReviewers({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+              reviewers: ['su600']
+            });
+            console.log('✅ Review requested from su600');
