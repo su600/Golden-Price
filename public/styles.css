@@ -1,5 +1,5 @@
 /* =============================================
-   Golden-Price — Stylesheet
+   Gold-Price — Stylesheet
    Light theme, compact, mobile-first
    ============================================= */
 
@@ -252,6 +252,73 @@ a:hover { text-decoration: underline; }
   border-radius: 3px;
   padding: 1px 4px;
   letter-spacing: 0.3px;
+}
+
+.card-header-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.card-info-btn {
+  background: transparent;
+  border: none;
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 0 1px;
+  line-height: 1;
+  flex-shrink: 0;
+  opacity: 0.55;
+  transition: opacity var(--transition), color var(--transition);
+}
+
+.card-info-btn:hover { opacity: 1; color: var(--gold); }
+
+/* ---- Info Tooltip ---- */
+.info-tooltip {
+  position: fixed;
+  z-index: 600;
+  background: var(--bg-card);
+  border: 1px solid rgba(0,0,0,0.13);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 18px rgba(0,0,0,0.18);
+  padding: 10px 12px 8px;
+  max-width: 240px;
+  font-size: 0.78rem;
+}
+
+.info-tooltip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 7px;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.info-tooltip-close {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  padding: 0;
+  line-height: 1;
+}
+
+.info-tooltip a {
+  display: block;
+  padding: 2px 0;
+  font-size: 0.76rem;
+  color: var(--gold);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 210px;
 }
 
 .card-price {
@@ -597,6 +664,12 @@ input[type="checkbox"] {
 
 [data-theme="dark"] .card-badge {
   background: rgba(255,255,255,0.08);
+}
+
+[data-theme="dark"] .info-tooltip {
+  background: #1A1D27;
+  border-color: rgba(255,255,255,0.12);
+  box-shadow: 0 4px 18px rgba(0,0,0,0.55);
 }
 
 [data-theme="dark"] .skeleton {
