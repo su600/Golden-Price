@@ -193,10 +193,10 @@ a:hover { text-decoration: underline; }
   border: 1px solid rgba(0,0,0,0.08);
   border-top: 3px solid var(--card-accent, var(--gold-light));
   border-radius: var(--radius);
-  padding: 10px 11px 8px;
+  padding: 7px 11px 6px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   transition: box-shadow var(--transition), transform var(--transition);
   box-shadow: var(--shadow-card);
   position: relative;
@@ -747,6 +747,22 @@ input[type="checkbox"] {
 [data-theme="dark"] .stat-item {
   background: linear-gradient(180deg, #20243A, #1A1D27);
   border-color: rgba(255,255,255,0.06);
+}
+
+/* ---- Footer ---- */
+.app-footer {
+  text-align: center;
+  padding: 14px clamp(10px, 2vw, 20px);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  border-top: 1px solid rgba(0,0,0,0.07);
+  margin-top: 8px;
+}
+
+.app-footer a { color: var(--gold); }
+
+[data-theme="dark"] .app-footer {
+  border-top-color: rgba(255,255,255,0.07);
 }
 
 /* ---- Utility ---- */
