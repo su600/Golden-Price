@@ -298,7 +298,7 @@ app.get('/api/standings/:league', async (req, res) => {
         return;
       }
       if (Array.isArray(container.entries)) {
-        entries = entries.concat(container.entries);
+        entries.push(...container.entries);
       }
     };
     const walkNode = (node) => {
