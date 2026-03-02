@@ -1,6 +1,7 @@
 const express = require('express');
 const https = require('https');
 const path = require('path');
+const zlib = require('zlib');
 const { extractDongqiudiRankings } = require('./lib/standings');
 
 const app = express();
@@ -10,12 +11,24 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 
 // ── Helper: make an HTTPS GET request, returns a Promise ────
+// Automatically decompresses gzip / deflate / br responses.
 function httpsGet(options, timeoutMs = 15000) {
   return new Promise((resolve, reject) => {
     const req = https.request(options, (res) => {
-      let chunks = [];
-      res.on('data', (c) => chunks.push(c));
-      res.on('end', () => resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString('utf8') }));
+      const encoding = (res.headers['content-encoding'] || '').toLowerCase();
+      let stream = res;
+      res.on('error', reject);
+      if (encoding === 'gzip') {
+        stream = res.pipe(zlib.createGunzip());
+      } else if (encoding === 'deflate') {
+        stream = res.pipe(zlib.createInflate());
+      } else if (encoding === 'br') {
+        stream = res.pipe(zlib.createBrotliDecompress());
+      }
+      const chunks = [];
+      stream.on('data', (c) => chunks.push(c));
+      stream.on('end', () => resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString('utf8') }));
+      stream.on('error', reject);
     });
     req.on('error', reject);
     req.setTimeout(timeoutMs, () => { req.destroy(); reject(new Error('timeout')); });
@@ -286,6 +299,7 @@ app.get('/api/standings/:league', async (req, res) => {
     try {
       data = JSON.parse(body);
     } catch (_) {
+      console.error(`[standings/${req.params.league}] Invalid JSON – first 200 chars: ${body.slice(0, 200)}`);
       return res.status(502).json({ error: 'Invalid JSON from dongqiudi' });
     }
 
