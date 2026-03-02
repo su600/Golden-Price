@@ -6,6 +6,6 @@ on:
 
 jobs:
   auto-assign:
-    uses: su600/Golden-Price/.github/workflows/auto-assign.yml@main
+    uses: su600/.github/workflows/auto-assign-reviewer.yml
     with:
       reviewer: su600   # 可以传参覆盖默认值
