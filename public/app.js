@@ -1,5 +1,5 @@
 /* ============================================================
-   Golden-Price — Main Application
+   Gold-Price — Main Application
    Fetches financial data from multiple sources in priority order:
    Gold/silver: GoldPrice.org → Sina Finance → Yahoo Finance → Brave Search API.
    Other items: Sina Finance → Yahoo Finance → Brave Search API.
@@ -29,6 +29,26 @@ const ITEMS = [
     accent: '#FFD700',
     showCNYperGram: true,
     range: [500, 5000],
+    sources: [
+      { name: 'GoldPrice.org', url: 'https://goldprice.org' },
+      { name: 'Sina Finance', url: 'https://finance.sina.com.cn' },
+      { name: 'Yahoo Finance', url: 'https://finance.yahoo.com' },
+    ],
+  },
+  {
+    id: 'gold_cny',
+    emoji: '🪙',
+    name: 'Gold CNY/g',
+    name_zh: '黄金人民币/克',
+    unit: '¥/g',
+    accent: '#FF8C00',
+    derived: true,
+    range: [200, 2000],
+    sources: [
+      { name: 'GoldPrice.org', url: 'https://goldprice.org' },
+      { name: 'Sina Finance', url: 'https://finance.sina.com.cn' },
+      { name: 'Yahoo Finance', url: 'https://finance.yahoo.com' },
+    ],
   },
   {
     id: 'silver',
@@ -41,6 +61,11 @@ const ITEMS = [
     unit: 'USD/oz',
     accent: '#C0C0C0',
     range: [5, 200],
+    sources: [
+      { name: 'GoldPrice.org', url: 'https://goldprice.org' },
+      { name: 'Sina Finance', url: 'https://finance.sina.com.cn' },
+      { name: 'Yahoo Finance', url: 'https://finance.yahoo.com' },
+    ],
   },
   {
     id: 'oil',
@@ -53,6 +78,10 @@ const ITEMS = [
     unit: 'USD/bbl',
     accent: '#8B4513',
     range: [20, 300],
+    sources: [
+      { name: 'Sina Finance', url: 'https://finance.sina.com.cn' },
+      { name: 'Yahoo Finance', url: 'https://finance.yahoo.com' },
+    ],
   },
   {
     id: 'usdcny',
@@ -65,6 +94,10 @@ const ITEMS = [
     unit: 'CNY',
     accent: '#DC143C',
     range: [5, 10],
+    sources: [
+      { name: 'Sina Finance', url: 'https://finance.sina.com.cn' },
+      { name: 'Yahoo Finance', url: 'https://finance.yahoo.com' },
+    ],
   },
   {
     id: 'eurusd',
@@ -77,6 +110,10 @@ const ITEMS = [
     unit: 'USD',
     accent: '#4169E1',
     range: [0.8, 1.6],
+    sources: [
+      { name: 'Sina Finance', url: 'https://finance.sina.com.cn' },
+      { name: 'Yahoo Finance', url: 'https://finance.yahoo.com' },
+    ],
   },
   {
     id: 'gbpusd',
@@ -89,6 +126,10 @@ const ITEMS = [
     unit: 'USD',
     accent: '#6A0DAD',
     range: [1.0, 2.0],
+    sources: [
+      { name: 'Sina Finance', url: 'https://finance.sina.com.cn' },
+      { name: 'Yahoo Finance', url: 'https://finance.yahoo.com' },
+    ],
   },
   {
     id: 'sp500',
@@ -101,6 +142,10 @@ const ITEMS = [
     unit: 'pts',
     accent: '#228B22',
     range: [2000, 8000],
+    sources: [
+      { name: 'Sina Finance', url: 'https://finance.sina.com.cn' },
+      { name: 'Yahoo Finance', url: 'https://finance.yahoo.com' },
+    ],
   },
   {
     id: 'dow',
@@ -113,6 +158,10 @@ const ITEMS = [
     unit: 'pts',
     accent: '#4169E1',
     range: [20000, 60000],
+    sources: [
+      { name: 'Sina Finance', url: 'https://finance.sina.com.cn' },
+      { name: 'Yahoo Finance', url: 'https://finance.yahoo.com' },
+    ],
   },
   {
     id: 'nasdaq',
@@ -125,6 +174,10 @@ const ITEMS = [
     unit: 'pts',
     accent: '#9370DB',
     range: [5000, 25000],
+    sources: [
+      { name: 'Sina Finance', url: 'https://finance.sina.com.cn' },
+      { name: 'Yahoo Finance', url: 'https://finance.yahoo.com' },
+    ],
   },
   {
     id: 'sse',
@@ -137,6 +190,10 @@ const ITEMS = [
     unit: 'pts',
     accent: '#FF4500',
     range: [1500, 8000],
+    sources: [
+      { name: 'Sina Finance', url: 'https://finance.sina.com.cn' },
+      { name: 'Yahoo Finance', url: 'https://finance.yahoo.com' },
+    ],
   },
   {
     id: 'hsi',
@@ -149,6 +206,10 @@ const ITEMS = [
     unit: 'pts',
     accent: '#FF6347',
     range: [8000, 40000],
+    sources: [
+      { name: 'Sina Finance', url: 'https://finance.sina.com.cn' },
+      { name: 'Yahoo Finance', url: 'https://finance.yahoo.com' },
+    ],
   },
 ];
 
@@ -403,9 +464,6 @@ function generateCards() {
     card.className = 'fin-card';
     card.id = `card-${item.id}`;
     card.style.setProperty('--card-accent', item.accent);
-    card.setAttribute('role', 'button');
-    card.setAttribute('tabindex', '0');
-    card.setAttribute('aria-label', `${item.name} price chart`);
 
     card.innerHTML = `
       <div class="card-header">
@@ -413,16 +471,35 @@ function generateCards() {
           <span class="card-emoji">${item.emoji}</span>
           <span>${item.name}</span>
         </div>
-        <span class="card-badge">${item.unit}</span>
+        <div class="card-header-right">
+          <span class="card-badge">${item.unit}</span>
+          <button class="card-info-btn" data-id="${item.id}" title="查看数据源" aria-label="数据源">ℹ</button>
+        </div>
       </div>
-      <div class="card-price skeleton" id="price-${item.id}">...</div>
-      <div class="card-sub" id="sub-${item.id}"></div>
-      <div class="card-change neutral" id="change-${item.id}">—</div>
-      <div class="card-sparkline" id="spark-${item.id}" aria-hidden="true"></div>
+      <button class="card-body-btn" aria-label="${item.name} price chart">
+        <div class="card-price skeleton" id="price-${item.id}">...</div>
+        <div class="card-sub" id="sub-${item.id}"></div>
+        <div class="card-change neutral" id="change-${item.id}">—</div>
+        <div class="card-sparkline" id="spark-${item.id}" aria-hidden="true"></div>
+      </button>
     `;
 
-    card.addEventListener('click', () => openTrendChart(item.id));
-    card.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') openTrendChart(item.id); });
+    card.querySelector('.card-body-btn').addEventListener('click', () => openTrendChart(item.id));
+
+    const infoBtn = card.querySelector('.card-info-btn');
+    if (infoBtn) {
+      infoBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openInfoTooltip(item.id, infoBtn);
+      });
+      infoBtn.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          if (e.key === ' ') e.preventDefault(); // avoid page scroll
+          e.stopPropagation();
+          openInfoTooltip(item.id, infoBtn);
+        }
+      });
+    }
 
     grid.appendChild(card);
     initSparkline(item.id, item.accent);
@@ -523,6 +600,41 @@ function setCardError(id, msg) {
   if (priceEl) { priceEl.textContent = 'Error'; priceEl.classList.remove('skeleton'); }
   const changeEl = document.getElementById(`change-${id}`);
   if (changeEl) { changeEl.textContent = msg.slice(0, 30); changeEl.className = 'card-change negative'; }
+}
+
+// ── Info Tooltip ─────────────────────────────────────────────
+function openInfoTooltip(id, btnEl) {
+  const item = ITEMS.find((i) => i.id === id);
+  if (!item?.sources?.length) return;
+
+  const tooltip = document.getElementById('infoTooltip');
+  document.getElementById('infoTooltipLinks').innerHTML = item.sources
+    .map((s) => `<a href="${s.url}" target="_blank" rel="noopener noreferrer">${s.name}</a>`)
+    .join('');
+
+  tooltip.hidden = false;
+
+  // Position the tooltip near the button, clamped to viewport
+  const rect = btnEl.getBoundingClientRect();
+  const left = Math.max(4, Math.min(rect.left, window.innerWidth - 244)); // 240px max-width + 4px margin
+  const margin = 6;
+  const tooltipHeight = tooltip.offsetHeight || 0;
+  let top = rect.bottom + margin; // default: below the button
+
+  // If tooltip would overflow bottom of viewport, flip it above the button
+  if (top + tooltipHeight > window.innerHeight - margin) {
+    top = rect.top - tooltipHeight - margin;
+  }
+
+  // Clamp to stay within viewport (at least 4px from top)
+  top = Math.max(4, top);
+
+  tooltip.style.top  = `${top}px`;
+  tooltip.style.left = `${left}px`;
+}
+
+function closeInfoTooltip() {
+  document.getElementById('infoTooltip').hidden = true;
 }
 
 // ── Data Fetching ────────────────────────────────────────────
@@ -658,6 +770,7 @@ async function refreshData() {
   const prices  = {};
 
   for (const item of enabled) {
+    if (item.derived) continue; // derived items are computed from base prices below
     setCardLoading(item.id);
     try {
       const { price, change } = await fetchItem(item);
@@ -671,13 +784,19 @@ async function refreshData() {
     await sleep(400); // gentle throttle between requests
   }
 
-  // Gold → CNY/g sub-label
+  // Gold → CNY/g sub-label and derived card
   const goldPrice  = prices['gold'];
   const usdcnyRate = prices['usdcny'];
   if (goldPrice && usdcnyRate) {
     const cnyPerGram = (goldPrice * usdcnyRate) / TROY_OZ_GRAM;
     const subEl = document.getElementById('sub-gold');
     if (subEl) subEl.textContent = `≈ ¥${cnyPerGram.toFixed(2)}/g`;
+    if (config.enabledItems.includes('gold_cny')) {
+      updateCard('gold_cny', cnyPerGram, null);
+    }
+  } else if (config.enabledItems.includes('gold_cny')) {
+    // Base prices unavailable — show N/A on the derived card
+    setCardError('gold_cny', 'N/A');
   }
 
   document.getElementById('lastUpdated').textContent =
@@ -927,6 +1046,13 @@ function init() {
   document.getElementById('alertSettingsBtn').addEventListener('click', openSettings);
   document.getElementById('closeChart').addEventListener('click', closeTrendChart);
   document.getElementById('chartBackdrop').addEventListener('click', closeTrendChart);
+  document.getElementById('closeInfoTooltip').addEventListener('click', closeInfoTooltip);
+  document.addEventListener('click', (e) => {
+    const tooltip = document.getElementById('infoTooltip');
+    if (!tooltip.hidden && !tooltip.contains(e.target) && !e.target.classList.contains('card-info-btn')) {
+      closeInfoTooltip();
+    }
+  });
   document.getElementById('toggleApiKey').addEventListener('click', () => {
     const inp = document.getElementById('apiKeyInput');
     inp.type = inp.type === 'password' ? 'text' : 'password';

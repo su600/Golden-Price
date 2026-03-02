@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Golden-Price 💰</title>
+  <title>Gold-Price 💰</title>
 
   <!-- PWA -->
   <link rel="manifest" href="/manifest.json" />
@@ -26,7 +26,7 @@
     <div class="header-inner">
       <div class="logo">
         <span class="logo-icon">💰</span>
-        <span class="logo-text">Golden-Price</span>
+        <span class="logo-text">Gold-Price</span>
       </div>
       <div class="header-actions">
         <button id="themeBtn" class="icon-btn" title="Toggle theme" aria-label="Toggle theme" aria-pressed="false">🌙</button>
@@ -122,6 +122,14 @@
         <div class="chart-stats" id="chartStats"></div>
       </div>
     </div>
+  </div>
+  <!-- ===== INFO TOOLTIP ===== -->
+  <div id="infoTooltip" class="info-tooltip" hidden>
+    <div class="info-tooltip-header">
+      <span>📡 数据源</span>
+      <button class="info-tooltip-close" id="closeInfoTooltip" aria-label="关闭">✕</button>
+    </div>
+    <div id="infoTooltipLinks"></div>
   </div>
 </body>
 </html>
