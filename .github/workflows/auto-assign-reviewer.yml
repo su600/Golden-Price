@@ -1,8 +1,8 @@
 name: Auto Assign
 
 on:
-  # 建议增加 opened，这样 Copilot 刚创建 PR 时也会触发，而不仅仅是更新(synchronize)时
-  pull_request:
+  # 更新(synchronize)时
+  pull_request_target: 
     types: [synchronize]
 
 jobs:
