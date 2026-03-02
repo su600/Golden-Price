@@ -252,6 +252,93 @@ app.get('/api/search', async (req, res) => {
   }
 });
 
+// ── Football Standings proxy (ESPN public API) ───────────────
+// GET /api/standings/:league  (laliga | premierleague | ucl)
+const STANDINGS_LEAGUE_MAP = {
+  laliga:        'esp.1',
+  premierleague: 'eng.1',
+  ucl:           'UEFA.CHAMPIONS',
+};
+
+app.get('/api/standings/:league', async (req, res) => {
+  const leagueCode = STANDINGS_LEAGUE_MAP[req.params.league];
+  if (!leagueCode) return res.status(400).json({ error: 'Unknown league. Use: laliga, premierleague, ucl' });
+
+  const options = {
+    hostname: 'site.api.espn.com',
+    path: `/apis/site/v2/sports/soccer/${leagueCode}/standings`,
+    method: 'GET',
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+      'Accept': 'application/json',
+      'Accept-Language': 'en-US,en;q=0.9',
+    },
+  };
+
+  const start = Date.now();
+  try {
+    const { status, body } = await httpsGet(options, 15000);
+    console.log(`[standings/${req.params.league}] Status: ${status} | ${Date.now() - start}ms`);
+
+    let data;
+    try {
+      data = JSON.parse(body);
+    } catch (_) {
+      return res.status(502).json({ error: 'Invalid JSON from ESPN' });
+    }
+
+    // ESPN may use standings[].entries or children[].standings.entries
+    // Use a recursive helper so multi-group competitions (e.g. UCL groups) are fully covered
+    let entries = [];
+    const addEntries = (container) => {
+      if (!container) return;
+      if (Array.isArray(container)) {
+        for (const item of container) addEntries(item);
+        return;
+      }
+      if (Array.isArray(container.entries)) {
+        entries = entries.concat(container.entries);
+      }
+    };
+
+    if (data?.standings) addEntries(data.standings);
+    if (Array.isArray(data?.children)) {
+      for (const child of data.children) {
+        if (child?.standings) addEntries(child.standings);
+      }
+    }
+
+    if (!entries.length) {
+      return res.status(502).json({ error: 'No standings data found in ESPN response' });
+    }
+
+    const getStat = (stats, name) => {
+      const s = (stats || []).find((x) => x.name === name || x.shortDisplayName === name);
+      return s != null ? (s.value ?? null) : null;
+    };
+
+    const standings = entries.map((entry) => {
+      const stats = entry.stats || [];
+      return {
+        pos:    getStat(stats, 'rank') ?? 0,
+        team:   entry.team?.displayName ?? '',
+        abbr:   entry.team?.abbreviation ?? '',
+        pts:    getStat(stats, 'points') ?? 0,
+        wins:   getStat(stats, 'wins') ?? 0,
+        draws:  getStat(stats, 'ties') ?? 0,
+        losses: getStat(stats, 'losses') ?? 0,
+        played: getStat(stats, 'gamesPlayed') ?? 0,
+        gd:     getStat(stats, 'pointDifferential') ?? getStat(stats, 'GD') ?? 0,
+      };
+    }).sort((a, b) => a.pos - b.pos || b.pts - a.pts);
+
+    res.json({ standings });
+  } catch (err) {
+    console.error(`[standings/${req.params.league}] error: ${err.message}`);
+    res.status(504).json({ error: err.message === 'timeout' ? 'Request timed out' : `Request failed: ${err.message}` });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`\n  💰 Gold-Price server running at http://localhost:${PORT}\n`);
 });

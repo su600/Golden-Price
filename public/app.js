@@ -213,7 +213,33 @@ const ITEMS = [
   },
 ];
 
-// ── State ────────────────────────────────────────────────────
+// ── Football Leagues Definition ──────────────────────────────
+const LEAGUES = [
+  {
+    id: 'laliga',
+    emoji: '🇪🇸',
+    name: 'La Liga',
+    name_zh: '西甲',
+    accent: '#EE8700',
+    highlight: 'real madrid',
+  },
+  {
+    id: 'premierleague',
+    emoji: '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+    name: 'Premier League',
+    name_zh: '英超',
+    accent: '#3D195B',
+    highlight: null,
+  },
+  {
+    id: 'ucl',
+    emoji: '🌟',
+    name: 'Champions League',
+    name_zh: '欧冠',
+    accent: '#1E5EAD',
+    highlight: 'real madrid',
+  },
+];
 let config = {
   apiKey: '',
   refreshInterval: 1800,
@@ -226,6 +252,7 @@ let trendChart  = null;
 let refreshTimer = null;
 let apiCallsMade = 0;
 let isRefreshing = false;
+let isStandingsRefreshing = false;
 
 // ── Utilities ────────────────────────────────────────────────
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -504,6 +531,9 @@ function generateCards() {
     grid.appendChild(card);
     initSparkline(item.id, item.accent);
   });
+
+  // Generate the football standings section below the financial cards
+  generateLeagueSection();
 }
 
 function initSparkline(id, accent) {
@@ -757,6 +787,122 @@ async function fetchItem(item) {
   return { price, change };
 }
 
+// ── Football Standings ───────────────────────────────────────
+
+function generateLeagueSection() {
+  const section = document.getElementById('standingsSection');
+  const grid    = document.getElementById('standingsGrid');
+  grid.innerHTML = '';
+
+  LEAGUES.forEach((league) => {
+    const card = document.createElement('article');
+    card.className = 'standings-card';
+    card.id = `standings-card-${league.id}`;
+    card.style.setProperty('--card-accent', league.accent);
+
+    card.innerHTML = `
+      <div class="standings-card-header">
+        <div class="standings-card-title">
+          <span>${league.emoji}</span>
+          <span>${league.name}</span>
+          <span class="standings-name-zh">${league.name_zh}</span>
+        </div>
+        <span class="standings-updated" id="standings-ts-${league.id}"></span>
+      </div>
+      <div class="standings-body" id="standings-body-${league.id}">
+        <div class="skeleton standings-loading">&nbsp;</div>
+      </div>
+    `;
+
+    grid.appendChild(card);
+  });
+
+  section.hidden = false;
+}
+
+function renderLeagueStandings(leagueId, teams) {
+  const league  = LEAGUES.find((l) => l.id === leagueId);
+  const bodyEl  = document.getElementById(`standings-body-${leagueId}`);
+  const tsEl    = document.getElementById(`standings-ts-${leagueId}`);
+  if (!bodyEl) return;
+
+  if (!teams || !teams.length) {
+    bodyEl.innerHTML = `<div class="standings-error">暂无数据</div>`;
+    return;
+  }
+
+  const rows = teams.map((t) => {
+    const isHighlight = league?.highlight && t.team.toLowerCase().includes(league.highlight);
+    const gdStr = t.gd > 0 ? `+${t.gd}` : String(t.gd);
+    const badge = isHighlight ? '<span class="standings-rm-badge">⭐</span>' : '';
+    return `<tr class="${isHighlight ? 'standings-row-highlight' : ''}">
+      <td>${t.pos}</td>
+      <td class="team-col">${escapeHtml(t.team)}${badge}</td>
+      <td class="pts-col">${t.pts}</td>
+      <td>${t.played}</td>
+      <td>${t.wins}</td>
+      <td>${t.draws}</td>
+      <td>${t.losses}</td>
+      <td>${gdStr}</td>
+    </tr>`;
+  }).join('');
+
+  bodyEl.innerHTML = `
+    <table class="standings-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th class="team-col">球队</th>
+          <th title="积分">积分</th>
+          <th title="场次">场</th>
+          <th title="胜">W</th>
+          <th title="平">D</th>
+          <th title="负">L</th>
+          <th title="净胜球">GD</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+
+  if (tsEl) tsEl.textContent = fmtTime(Date.now());
+}
+
+function escapeHtml(str) {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+async function refreshLeagueStandings() {
+  if (isStandingsRefreshing) return;
+  isStandingsRefreshing = true;
+  try {
+    await Promise.all(LEAGUES.map(async (league) => {
+      try {
+        const res  = await fetch(`/api/standings/${league.id}`);
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
+        renderLeagueStandings(league.id, data.standings);
+      } catch (err) {
+        console.warn(`[standings/${league.id}] ${err.message}`);
+        const bodyEl = document.getElementById(`standings-body-${league.id}`);
+        if (bodyEl) {
+          const errEl = document.createElement('div');
+          errEl.className = 'standings-error';
+          errEl.textContent = `⚠️ ${err.message}`;
+          bodyEl.innerHTML = '';
+          bodyEl.appendChild(errEl);
+        }
+      }
+    }));
+  } finally {
+    isStandingsRefreshing = false;
+  }
+}
+
 async function refreshData() {
   if (isRefreshing) return;
   // Show advisory if no Brave API key, but still proceed via Yahoo Finance
@@ -798,6 +944,9 @@ async function refreshData() {
     // Base prices unavailable — show N/A on the derived card
     setCardError('gold_cny', 'N/A');
   }
+
+  // Fetch league standings in parallel (non-blocking, does not delay financial cards)
+  refreshLeagueStandings();
 
   document.getElementById('lastUpdated').textContent =
     `🕐 Updated: ${fmtTime(Date.now())}`;
