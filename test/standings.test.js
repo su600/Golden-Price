@@ -93,6 +93,24 @@ test('returns empty array when template is present but content.data is empty', (
   assert.deepEqual(parseStandingsFromHtml(html), []);
 });
 
+test('handles trailing JavaScript after __INITIAL_STATE__ JSON', () => {
+  const data = [plEntry(1, '阿森纳', 64), plEntry(2, '曼城', 59)];
+  const state = {
+    statListStore: {
+      statListFull: [
+        { template: 'team_point_ranking_regular', content: { data } },
+      ],
+    },
+  };
+  const html =
+    `<html><script>window.__INITIAL_STATE__=${JSON.stringify(state)};` +
+    `(function(){console.log('after json');})();</script></html>`;
+  const result = parseStandingsFromHtml(html);
+  assert.equal(result.length, 2);
+  assert.equal(result[0].team_name, '阿森纳');
+  assert.equal(result[1].team_name, '曼城');
+});
+
 test('returns empty array when __INITIAL_STATE__ JSON is malformed', () => {
   const html = '<html><script>window.__INITIAL_STATE__={broken json;</script></html>';
   assert.deepEqual(parseStandingsFromHtml(html), []);

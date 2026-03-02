@@ -12,7 +12,7 @@ app.use(express.json());
 
 // ── Helper: make an HTTPS GET request, returns a Promise ────
 // Automatically decompresses gzip / deflate / br responses.
-// Rejects if the accumulated payload exceeds maxBytes (default 10 MB).
+// Rejects if the accumulated payload exceeds MAX_RESPONSE_BYTES (10 MB).
 const MAX_RESPONSE_BYTES = 10 * 1024 * 1024; // 10 MB
 
 function httpsGet(options, timeoutMs = 15000) {
