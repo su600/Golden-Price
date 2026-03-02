@@ -252,6 +252,7 @@ let trendChart  = null;
 let refreshTimer = null;
 let apiCallsMade = 0;
 let isRefreshing = false;
+let isStandingsRefreshing = false;
 
 // ── Utilities ────────────────────────────────────────────────
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -876,18 +877,30 @@ function escapeHtml(str) {
 }
 
 async function refreshLeagueStandings() {
-  await Promise.all(LEAGUES.map(async (league) => {
-    try {
-      const res  = await fetch(`/api/standings/${league.id}`);
-      const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
-      renderLeagueStandings(league.id, data.standings);
-    } catch (err) {
-      console.warn(`[standings/${league.id}] ${err.message}`);
-      const bodyEl = document.getElementById(`standings-body-${league.id}`);
-      if (bodyEl) bodyEl.innerHTML = `<div class="standings-error">⚠️ ${err.message}</div>`;
-    }
-  }));
+  if (isStandingsRefreshing) return;
+  isStandingsRefreshing = true;
+  try {
+    await Promise.all(LEAGUES.map(async (league) => {
+      try {
+        const res  = await fetch(`/api/standings/${league.id}`);
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
+        renderLeagueStandings(league.id, data.standings);
+      } catch (err) {
+        console.warn(`[standings/${league.id}] ${err.message}`);
+        const bodyEl = document.getElementById(`standings-body-${league.id}`);
+        if (bodyEl) {
+          const errEl = document.createElement('div');
+          errEl.className = 'standings-error';
+          errEl.textContent = `⚠️ ${err.message}`;
+          bodyEl.innerHTML = '';
+          bodyEl.appendChild(errEl);
+        }
+      }
+    }));
+  } finally {
+    isStandingsRefreshing = false;
+  }
 }
 
 async function refreshData() {

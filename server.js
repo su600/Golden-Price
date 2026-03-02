@@ -288,13 +288,24 @@ app.get('/api/standings/:league', async (req, res) => {
     }
 
     // ESPN may use standings[].entries or children[].standings.entries
+    // Use a recursive helper so multi-group competitions (e.g. UCL groups) are fully covered
     let entries = [];
-    if (Array.isArray(data?.standings?.[0]?.entries)) {
-      entries = data.standings[0].entries;
-    } else if (Array.isArray(data?.children?.[0]?.standings?.entries)) {
-      entries = data.children[0].standings.entries;
-    } else if (Array.isArray(data?.standings?.entries)) {
-      entries = data.standings.entries;
+    const addEntries = (container) => {
+      if (!container) return;
+      if (Array.isArray(container)) {
+        for (const item of container) addEntries(item);
+        return;
+      }
+      if (Array.isArray(container.entries)) {
+        entries = entries.concat(container.entries);
+      }
+    };
+
+    if (data?.standings) addEntries(data.standings);
+    if (Array.isArray(data?.children)) {
+      for (const child of data.children) {
+        if (child?.standings) addEntries(child.standings);
+      }
     }
 
     if (!entries.length) {
