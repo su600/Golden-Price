@@ -753,8 +753,8 @@ input[type="checkbox"] {
 .app-footer {
   text-align: center;
   padding: 14px clamp(10px, 2vw, 20px);
-  font-size: 0.72rem;
-  color: var(--text-dim);
+  font-size: 0.8rem;
+  color: var(--text-muted);
   border-top: 1px solid rgba(0,0,0,0.07);
   margin-top: 8px;
 }
