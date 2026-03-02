@@ -1,6 +1,7 @@
 const express = require('express');
 const https = require('https');
 const path = require('path');
+const { extractDongqiudiRankings } = require('./lib/standings');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -252,26 +253,27 @@ app.get('/api/search', async (req, res) => {
   }
 });
 
-// ── Football Standings proxy (ESPN public API) ───────────────
+// ── Football Standings proxy (懂球帝 / Dongqiudi) ─────────────
 // GET /api/standings/:league  (laliga | premierleague | ucl)
 const STANDINGS_LEAGUE_MAP = {
-  laliga:        'esp.1',
-  premierleague: 'eng.1',
-  ucl:           'UEFA.CHAMPIONS',
+  premierleague: '1',  // 英超
+  laliga:        '3',  // 西甲
+  ucl:           '5',  // 欧冠
 };
 
 app.get('/api/standings/:league', async (req, res) => {
-  const leagueCode = STANDINGS_LEAGUE_MAP[req.params.league];
-  if (!leagueCode) return res.status(400).json({ error: 'Unknown league. Use: laliga, premierleague, ucl' });
+  const leagueId = STANDINGS_LEAGUE_MAP[req.params.league];
+  if (!leagueId) return res.status(400).json({ error: 'Unknown league. Use: laliga, premierleague, ucl' });
 
   const options = {
-    hostname: 'site.api.espn.com',
-    path: `/apis/site/v2/sports/soccer/${leagueCode}/standings`,
+    hostname: 'm.dongqiudi.com',
+    path: `/statTC/${leagueId}/rankingTeam`,
     method: 'GET',
     headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-      'Accept': 'application/json',
-      'Accept-Language': 'en-US,en;q=0.9',
+      'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
+      'Accept': 'application/json, text/plain, */*',
+      'Accept-Language': 'zh-CN,zh;q=0.9',
+      'Referer': 'https://m.dongqiudi.com/',
     },
   };
 
@@ -284,55 +286,30 @@ app.get('/api/standings/:league', async (req, res) => {
     try {
       data = JSON.parse(body);
     } catch (_) {
-      return res.status(502).json({ error: 'Invalid JSON from ESPN' });
+      return res.status(502).json({ error: 'Invalid JSON from dongqiudi' });
     }
 
-    // Walk the ESPN response tree recursively to collect standings entries.
-    // Handles any nesting depth: root standings, single-level children (UCL groups),
-    // and deeply nested children (UCL league-phase format, etc.).
-    let entries = [];
-    const addEntries = (container) => {
-      if (!container) return;
-      if (Array.isArray(container)) {
-        for (const item of container) addEntries(item);
-        return;
-      }
-      if (Array.isArray(container.entries)) {
-        entries.push(...container.entries);
-      }
-    };
-    const walkNode = (node) => {
-      if (!node || typeof node !== 'object') return;
-      if (Array.isArray(node)) {
-        node.forEach(walkNode);
-        return;
-      }
-      if (node.standings) addEntries(node.standings);
-      if (Array.isArray(node.children)) node.children.forEach(walkNode);
-    };
-    walkNode(data);
-
-    if (!entries.length) {
-      return res.status(502).json({ error: 'No standings data found in ESPN response' });
+    if (data.code !== undefined && data.code !== 0) {
+      return res.status(502).json({ error: `Dongqiudi API error: ${data.message || data.code}` });
     }
 
-    const getStat = (stats, name) => {
-      const s = (stats || []).find((x) => x.name === name || x.shortDisplayName === name);
-      return s != null ? (s.value ?? null) : null;
-    };
+    const rankingTeam = extractDongqiudiRankings(data);
+    if (!rankingTeam.length) {
+      return res.status(502).json({ error: 'No standings data found in dongqiudi response' });
+    }
 
-    const standings = entries.map((entry) => {
-      const stats = entry.stats || [];
+    const standings = rankingTeam.map((entry) => {
+      const team = entry.team || {};
       return {
-        pos:    getStat(stats, 'rank') ?? 0,
-        team:   entry.team?.displayName ?? '',
-        abbr:   entry.team?.abbreviation ?? '',
-        pts:    getStat(stats, 'points') ?? 0,
-        wins:   getStat(stats, 'wins') ?? 0,
-        draws:  getStat(stats, 'ties') ?? 0,
-        losses: getStat(stats, 'losses') ?? 0,
-        played: getStat(stats, 'gamesPlayed') ?? 0,
-        gd:     getStat(stats, 'pointDifferential') ?? getStat(stats, 'GD') ?? 0,
+        pos:    entry.rank    ?? 0,
+        team:   team.name_zh  || team.name  || team.short_name || '',
+        abbr:   team.abbr     || team.short_name || '',
+        pts:    entry.points  ?? 0,
+        wins:   entry.win     ?? 0,   // dongqiudi uses singular: win/draw/lose
+        draws:  entry.draw    ?? 0,
+        losses: entry.lose    ?? 0,
+        played: entry.played  ?? 0,
+        gd:     entry.gd      ?? 0,
       };
     }).sort((a, b) => a.pos - b.pos || b.pts - a.pts);
 

@@ -221,7 +221,7 @@ const LEAGUES = [
     name: 'La Liga',
     name_zh: '西甲',
     accent: '#EE8700',
-    highlight: 'real madrid',
+    highlight: '皇家马德里',
   },
   {
     id: 'premierleague',
@@ -237,7 +237,7 @@ const LEAGUES = [
     name: 'Champions League',
     name_zh: '欧冠',
     accent: '#1E5EAD',
-    highlight: 'real madrid',
+    highlight: '皇家马德里',
   },
 ];
 let config = {
