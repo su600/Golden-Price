@@ -6,6 +6,6 @@ on:
 
 jobs:
   auto-assign:
-    uses: su600/Templates/.github/workflows/auto-assign-reviewer.yml@main
+    uses: su600/Template/.github/workflows/auto-assign-reviewer.yml@main
     with:
       reviewer: su600
