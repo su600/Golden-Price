@@ -287,8 +287,9 @@ app.get('/api/standings/:league', async (req, res) => {
       return res.status(502).json({ error: 'Invalid JSON from ESPN' });
     }
 
-    // ESPN may use standings[].entries or children[].standings.entries
-    // Use a recursive helper so multi-group competitions (e.g. UCL groups) are fully covered
+    // Walk the ESPN response tree recursively to collect standings entries.
+    // Handles any nesting depth: root standings, single-level children (UCL groups),
+    // and deeply nested children (UCL league-phase format, etc.).
     let entries = [];
     const addEntries = (container) => {
       if (!container) return;
@@ -297,16 +298,19 @@ app.get('/api/standings/:league', async (req, res) => {
         return;
       }
       if (Array.isArray(container.entries)) {
-        entries = entries.concat(container.entries);
+        entries.push(...container.entries);
       }
     };
-
-    if (data?.standings) addEntries(data.standings);
-    if (Array.isArray(data?.children)) {
-      for (const child of data.children) {
-        if (child?.standings) addEntries(child.standings);
+    const walkNode = (node) => {
+      if (!node || typeof node !== 'object') return;
+      if (Array.isArray(node)) {
+        node.forEach(walkNode);
+        return;
       }
-    }
+      if (node.standings) addEntries(node.standings);
+      if (Array.isArray(node.children)) node.children.forEach(walkNode);
+    };
+    walkNode(data);
 
     if (!entries.length) {
       return res.status(502).json({ error: 'No standings data found in ESPN response' });
