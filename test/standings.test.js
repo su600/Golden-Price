@@ -2,71 +2,116 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { extractDongqiudiRankings } = require('../lib/standings');
+const { parseStandingsFromHtml } = require('../lib/standings');
 
-test('returns empty array for null input', () => {
-  assert.deepEqual(extractDongqiudiRankings(null), []);
-});
+// ── helpers ───────────────────────────────────────────────────
+function makeHtml(stateObj) {
+  return `<html><script>window.__INITIAL_STATE__=${JSON.stringify(stateObj)};</script></html>`;
+}
 
-test('returns empty array for empty object', () => {
-  assert.deepEqual(extractDongqiudiRankings({}), []);
-});
-
-test('flat rankingTeam array (Premier League / La Liga format)', () => {
-  const data = {
-    code: 0,
-    data: { rankingTeam: [{ rank: 1, team: { name_zh: '曼城' } }, { rank: 2, team: { name_zh: '阿森纳' } }] },
+function plEntry(rank, teamName, pts) {
+  return {
+    rank: String(rank),
+    team_name: teamName,
+    team_id: '1',
+    points: String(pts),
+    matches_total: '10',
+    matches_won: '5',
+    matches_draw: '2',
+    matches_lost: '3',
+    goals_pro: '15',
+    goals_against: '10',
   };
-  const result = extractDongqiudiRankings(data);
+}
+
+// ── tests ─────────────────────────────────────────────────────
+test('returns empty array for null/empty input', () => {
+  assert.deepEqual(parseStandingsFromHtml(null), []);
+  assert.deepEqual(parseStandingsFromHtml(''), []);
+  assert.deepEqual(parseStandingsFromHtml('<html></html>'), []);
+});
+
+test('returns empty array when __INITIAL_STATE__ is missing', () => {
+  assert.deepEqual(parseStandingsFromHtml('<html><body>no state here</body></html>'), []);
+});
+
+test('returns empty array when statListStore is absent', () => {
+  const html = makeHtml({ nodata: false });
+  assert.deepEqual(parseStandingsFromHtml(html), []);
+});
+
+test('returns empty array when statListFull has no team_point_ranking_regular template', () => {
+  const html = makeHtml({
+    statListStore: {
+      statListFull: [
+        { template: 'team_point_ranking_knockout', content: { data: [{ rank: '1' }] } },
+      ],
+    },
+  });
+  assert.deepEqual(parseStandingsFromHtml(html), []);
+});
+
+test('Premier League / La Liga: extracts standings from team_point_ranking_regular template', () => {
+  const data = [plEntry(1, '阿森纳', 64), plEntry(2, '曼城', 59)];
+  const html = makeHtml({
+    statListStore: {
+      statListFull: [
+        { template: 'team_point_ranking_regular', content: { data } },
+      ],
+    },
+  });
+  const result = parseStandingsFromHtml(html);
   assert.equal(result.length, 2);
-  assert.equal(result[0].team.name_zh, '曼城');
+  assert.equal(result[0].team_name, '阿森纳');
+  assert.equal(result[1].team_name, '曼城');
 });
 
-test('flat rankingTeam at root level (no data wrapper)', () => {
-  const data = { rankingTeam: [{ rank: 1 }] };
-  const result = extractDongqiudiRankings(data);
-  assert.equal(result.length, 1);
+test('UCL: skips knockout templates and returns team_point_ranking_regular', () => {
+  const data = [plEntry(1, '利物浦', 24), plEntry(2, '拜仁慕尼黑', 21)];
+  const html = makeHtml({
+    statListStore: {
+      statListFull: [
+        { template: 'team_point_ranking_knockout', content: { data: [{ TeamA: {}, TeamB: {} }] } },
+        { template: 'team_point_ranking_aggregate', content: { data: [] } },
+        { template: 'team_point_ranking_regular', content: { data } },
+      ],
+    },
+  });
+  const result = parseStandingsFromHtml(html);
+  assert.equal(result.length, 2);
+  assert.equal(result[0].team_name, '利物浦');
 });
 
-test('grouped UCL response: skips knockout group and returns standings group', () => {
-  const data = {
-    code: 0,
-    data: {
-      groups: [
-        { name: '淘汰赛', rankingTeam: [{ rank: 1 }] },
-        { name: '联赛阶段', rankingTeam: [{ rank: 1 }, { rank: 2 }, { rank: 3 }] },
+test('returns empty array when template is present but content.data is empty', () => {
+  const html = makeHtml({
+    statListStore: {
+      statListFull: [
+        { template: 'team_point_ranking_regular', content: { data: [] } },
+      ],
+    },
+  });
+  assert.deepEqual(parseStandingsFromHtml(html), []);
+});
+
+test('handles trailing JavaScript after __INITIAL_STATE__ JSON', () => {
+  const data = [plEntry(1, '阿森纳', 64), plEntry(2, '曼城', 59)];
+  const state = {
+    statListStore: {
+      statListFull: [
+        { template: 'team_point_ranking_regular', content: { data } },
       ],
     },
   };
-  const result = extractDongqiudiRankings(data);
-  assert.equal(result.length, 3);
-});
-
-test('grouped UCL response: skips "knockout" and "bracket" labels', () => {
-  const data = {
-    data: {
-      groups: [
-        { name: 'knockout round', rankingTeam: [{ rank: 1 }] },
-        { name: 'bracket', rankingTeam: [{ rank: 1 }] },
-        { name: 'league phase', rankingTeam: [{ rank: 1 }, { rank: 2 }] },
-      ],
-    },
-  };
-  const result = extractDongqiudiRankings(data);
+  const html =
+    `<html><script>window.__INITIAL_STATE__=${JSON.stringify(state)};` +
+    `(function(){console.log('after json');})();</script></html>`;
+  const result = parseStandingsFromHtml(html);
   assert.equal(result.length, 2);
+  assert.equal(result[0].team_name, '阿森纳');
+  assert.equal(result[1].team_name, '曼城');
 });
 
-test('all groups are knockout sections: falls back to first group with rankingTeam', () => {
-  const data = {
-    data: {
-      groups: [{ name: 'knockout', rankingTeam: [{ rank: 1 }, { rank: 2 }] }],
-    },
-  };
-  const result = extractDongqiudiRankings(data);
-  assert.equal(result.length, 2);
-});
-
-test('groups array present but empty rankingTeam in each group: returns empty', () => {
-  const data = { data: { groups: [{ name: '联赛阶段', rankingTeam: [] }] } };
-  assert.deepEqual(extractDongqiudiRankings(data), []);
+test('returns empty array when __INITIAL_STATE__ JSON is malformed', () => {
+  const html = '<html><script>window.__INITIAL_STATE__={broken json;</script></html>';
+  assert.deepEqual(parseStandingsFromHtml(html), []);
 });

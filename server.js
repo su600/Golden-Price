@@ -1,7 +1,8 @@
 const express = require('express');
 const https = require('https');
 const path = require('path');
-const { extractDongqiudiRankings } = require('./lib/standings');
+const zlib = require('zlib');
+const { parseStandingsFromHtml } = require('./lib/standings');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -10,15 +11,41 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 
 // ── Helper: make an HTTPS GET request, returns a Promise ────
+// Automatically decompresses gzip / deflate / br responses.
+// Rejects if the accumulated payload exceeds MAX_RESPONSE_BYTES (10 MB).
+const MAX_RESPONSE_BYTES = 10 * 1024 * 1024; // 10 MB
+
 function httpsGet(options, timeoutMs = 15000) {
   return new Promise((resolve, reject) => {
+    let done = false;
+    const finish = (fn) => { if (!done) { done = true; fn(); } };
     const req = https.request(options, (res) => {
-      let chunks = [];
-      res.on('data', (c) => chunks.push(c));
-      res.on('end', () => resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString('utf8') }));
+      const encoding = (res.headers['content-encoding'] || '').toLowerCase();
+      let stream = res;
+      res.on('error', (e) => finish(() => reject(e)));
+      if (encoding === 'gzip') {
+        stream = res.pipe(zlib.createGunzip());
+      } else if (encoding === 'deflate') {
+        stream = res.pipe(zlib.createInflate());
+      } else if (encoding === 'br') {
+        stream = res.pipe(zlib.createBrotliDecompress());
+      }
+      const chunks = [];
+      let totalBytes = 0;
+      stream.on('data', (c) => {
+        totalBytes += c.length;
+        if (totalBytes > MAX_RESPONSE_BYTES) {
+          req.destroy();
+          finish(() => reject(new Error('Response too large')));
+          return;
+        }
+        chunks.push(c);
+      });
+      stream.on('end', () => finish(() => resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString('utf8') })));
+      stream.on('error', (e) => finish(() => reject(e)));
     });
-    req.on('error', reject);
-    req.setTimeout(timeoutMs, () => { req.destroy(); reject(new Error('timeout')); });
+    req.on('error', (e) => finish(() => reject(e)));
+    req.setTimeout(timeoutMs, () => { req.destroy(); finish(() => reject(new Error('timeout'))); });
     req.end();
   });
 }
@@ -255,6 +282,8 @@ app.get('/api/search', async (req, res) => {
 
 // ── Football Standings proxy (懂球帝 / Dongqiudi) ─────────────
 // GET /api/standings/:league  (laliga | premierleague | ucl)
+// The page at m.dongqiudi.com/statTC/{tabId}/rankingTeam returns HTML that
+// embeds window.__INITIAL_STATE__ JSON; we parse league standings from that.
 const STANDINGS_LEAGUE_MAP = {
   premierleague: '1',  // 英超
   laliga:        '3',  // 西甲
@@ -271,7 +300,7 @@ app.get('/api/standings/:league', async (req, res) => {
     method: 'GET',
     headers: {
       'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
-      'Accept': 'application/json, text/plain, */*',
+      'Accept': 'text/html,application/xhtml+xml,*/*',
       'Accept-Language': 'zh-CN,zh;q=0.9',
       'Referer': 'https://m.dongqiudi.com/',
     },
@@ -282,34 +311,24 @@ app.get('/api/standings/:league', async (req, res) => {
     const { status, body } = await httpsGet(options, 15000);
     console.log(`[standings/${req.params.league}] Status: ${status} | ${Date.now() - start}ms`);
 
-    let data;
-    try {
-      data = JSON.parse(body);
-    } catch (_) {
-      return res.status(502).json({ error: 'Invalid JSON from dongqiudi' });
-    }
-
-    if (data.code !== undefined && data.code !== 0) {
-      return res.status(502).json({ error: `Dongqiudi API error: ${data.message || data.code}` });
-    }
-
-    const rankingTeam = extractDongqiudiRankings(data);
-    if (!rankingTeam.length) {
+    const rawList = parseStandingsFromHtml(body);
+    if (!rawList.length) {
+      console.error(`[standings/${req.params.league}] No standings data – body snippet: ${JSON.stringify(body.slice(0, 200))}`);
       return res.status(502).json({ error: 'No standings data found in dongqiudi response' });
     }
 
-    const standings = rankingTeam.map((entry) => {
-      const team = entry.team || {};
+    const standings = rawList.map((entry) => {
+      const gf = parseInt(entry.goals_pro, 10) || 0;
+      const ga = parseInt(entry.goals_against, 10) || 0;
       return {
-        pos:    entry.rank    ?? 0,
-        team:   team.name_zh  || team.name  || team.short_name || '',
-        abbr:   team.abbr     || team.short_name || '',
-        pts:    entry.points  ?? 0,
-        wins:   entry.win     ?? 0,   // dongqiudi uses singular: win/draw/lose
-        draws:  entry.draw    ?? 0,
-        losses: entry.lose    ?? 0,
-        played: entry.played  ?? 0,
-        gd:     entry.gd      ?? 0,
+        pos:    parseInt(entry.rank, 10)          || 0,
+        team:   entry.team_name                   || '',
+        pts:    parseInt(entry.points, 10)        || 0,
+        wins:   parseInt(entry.matches_won, 10)   || 0,
+        draws:  parseInt(entry.matches_draw, 10)  || 0,
+        losses: parseInt(entry.matches_lost, 10)  || 0,
+        played: parseInt(entry.matches_total, 10) || 0,
+        gd:     gf - ga,
       };
     }).sort((a, b) => a.pos - b.pos || b.pts - a.pts);
 
