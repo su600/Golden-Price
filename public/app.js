@@ -229,7 +229,7 @@ const LEAGUES = [
     name: 'Premier League',
     name_zh: '英超',
     accent: '#3D195B',
-    highlight: null,
+    highlight: '阿森纳',
   },
   {
     id: 'ucl',
