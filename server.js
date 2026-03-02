@@ -2,7 +2,7 @@ const express = require('express');
 const https = require('https');
 const path = require('path');
 const zlib = require('zlib');
-const { parseStandingsFromHtml } = require('./lib/standings');
+const { parseStandingsFromHtml, parseAllStandingsFromHtml } = require('./lib/standings');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -311,18 +311,19 @@ app.get('/api/standings/:league', async (req, res) => {
     const { status, body } = await httpsGet(options, 15000);
     console.log(`[standings/${req.params.league}] Status: ${status} | ${Date.now() - start}ms`);
 
-    const rawList = parseStandingsFromHtml(body);
-    if (!rawList.length) {
+    const allGroups = parseAllStandingsFromHtml(body);
+    if (!allGroups.length) {
       console.error(`[standings/${req.params.league}] No standings data – body snippet: ${JSON.stringify(body.slice(0, 200))}`);
       return res.status(502).json({ error: 'No standings data found in dongqiudi response' });
     }
 
-    const standings = rawList.map((entry) => {
+    const mapEntry = (entry) => {
       const gf = parseInt(entry.goals_pro, 10) || 0;
       const ga = parseInt(entry.goals_against, 10) || 0;
       return {
         pos:    parseInt(entry.rank, 10)          || 0,
         team:   entry.team_name                   || '',
+        logo:   entry.team_logo                   || '',
         pts:    parseInt(entry.points, 10)        || 0,
         wins:   parseInt(entry.matches_won, 10)   || 0,
         draws:  parseInt(entry.matches_draw, 10)  || 0,
@@ -330,9 +331,19 @@ app.get('/api/standings/:league', async (req, res) => {
         played: parseInt(entry.matches_total, 10) || 0,
         gd:     gf - ga,
       };
-    }).sort((a, b) => a.pos - b.pos || b.pts - a.pts);
+    };
 
-    res.json({ standings });
+    const groups = allGroups.map((g) => ({
+      group:     g.group,
+      standings: g.data.map(mapEntry).sort((a, b) => a.pos - b.pos || b.pts - a.pts),
+    }));
+
+    // Provide a flat standings list for backward compatibility
+    const standings = groups.length === 1
+      ? groups[0].standings
+      : groups.flatMap((g) => g.standings);
+
+    res.json({ standings, groups });
   } catch (err) {
     console.error(`[standings/${req.params.league}] error: ${err.message}`);
     res.status(504).json({ error: err.message === 'timeout' ? 'Request timed out' : `Request failed: ${err.message}` });

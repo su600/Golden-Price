@@ -855,7 +855,23 @@ input[type="checkbox"] {
 /* Standings Table */
 .standings-body {
   overflow-y: auto;
-  max-height: 360px;
+  max-height: 260px;
+}
+
+/* Group header for UCL / multi-group leagues */
+.standings-group-header {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 8px 4px 3px;
+  border-bottom: 1px solid rgba(0,0,0,0.07);
+  margin-top: 4px;
+}
+.standings-group-header:first-child {
+  margin-top: 0;
+  padding-top: 2px;
 }
 
 .standings-table {
@@ -911,6 +927,16 @@ input[type="checkbox"] {
   max-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
+  vertical-align: middle;
+}
+
+.team-logo {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  vertical-align: middle;
+  margin-right: 4px;
+  border-radius: 2px;
 }
 
 .standings-table td:first-child {
@@ -941,6 +967,10 @@ input[type="checkbox"] {
 
 /* Dark mode overrides for standings */
 [data-theme="dark"] .standings-section-title {
+  border-bottom-color: rgba(255,255,255,0.07);
+}
+
+[data-theme="dark"] .standings-group-header {
   border-bottom-color: rgba(255,255,255,0.07);
 }
 

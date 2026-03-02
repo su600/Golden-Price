@@ -820,24 +820,17 @@ function generateLeagueSection() {
   section.hidden = false;
 }
 
-function renderLeagueStandings(leagueId, teams) {
-  const league  = LEAGUES.find((l) => l.id === leagueId);
-  const bodyEl  = document.getElementById(`standings-body-${leagueId}`);
-  const tsEl    = document.getElementById(`standings-ts-${leagueId}`);
-  if (!bodyEl) return;
-
-  if (!teams || !teams.length) {
-    bodyEl.innerHTML = `<div class="standings-error">暂无数据</div>`;
-    return;
-  }
-
+function _renderStandingsTable(teams, league) {
   const rows = teams.map((t) => {
-    const isHighlight = league?.highlight && t.team.toLowerCase().includes(league.highlight);
+    const isHighlight = league?.highlight && t.team.toLowerCase().includes(league.highlight.toLowerCase());
     const gdStr = t.gd > 0 ? `+${t.gd}` : String(t.gd);
     const badge = isHighlight ? '<span class="standings-rm-badge">⭐</span>' : '';
+    const logoImg = t.logo
+      ? `<img class="team-logo" src="${escapeHtml(t.logo)}" alt="" loading="lazy" onerror="this.style.display='none'">`
+      : '';
     return `<tr class="${isHighlight ? 'standings-row-highlight' : ''}">
       <td>${t.pos}</td>
-      <td class="team-col">${escapeHtml(t.team)}${badge}</td>
+      <td class="team-col">${logoImg}${escapeHtml(t.team)}${badge}</td>
       <td class="pts-col">${t.pts}</td>
       <td>${t.played}</td>
       <td>${t.wins}</td>
@@ -846,9 +839,7 @@ function renderLeagueStandings(leagueId, teams) {
       <td>${gdStr}</td>
     </tr>`;
   }).join('');
-
-  bodyEl.innerHTML = `
-    <table class="standings-table">
+  return `<table class="standings-table">
       <thead>
         <tr>
           <th>#</th>
@@ -862,8 +853,33 @@ function renderLeagueStandings(leagueId, teams) {
         </tr>
       </thead>
       <tbody>${rows}</tbody>
-    </table>
-  `;
+    </table>`;
+}
+
+function renderLeagueStandings(leagueId, teams, groups) {
+  const league  = LEAGUES.find((l) => l.id === leagueId);
+  const bodyEl  = document.getElementById(`standings-body-${leagueId}`);
+  const tsEl    = document.getElementById(`standings-ts-${leagueId}`);
+  if (!bodyEl) return;
+
+  // Use grouped rendering if multiple groups are present
+  const groupList = Array.isArray(groups) && groups.length > 1 ? groups : null;
+
+  if (groupList) {
+    const html = groupList.map((g) => {
+      const header = g.group
+        ? `<div class="standings-group-header">${escapeHtml(g.group)}</div>`
+        : '';
+      return header + _renderStandingsTable(g.standings, league);
+    }).join('');
+    bodyEl.innerHTML = html;
+  } else {
+    if (!teams || !teams.length) {
+      bodyEl.innerHTML = `<div class="standings-error">暂无数据</div>`;
+      return;
+    }
+    bodyEl.innerHTML = _renderStandingsTable(teams, league);
+  }
 
   if (tsEl) tsEl.textContent = fmtTime(Date.now());
 }
@@ -890,7 +906,7 @@ async function refreshLeagueStandings() {
           throw new Error(`HTTP ${res.status}: Invalid response`);
         }
         if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
-        renderLeagueStandings(league.id, data.standings);
+        renderLeagueStandings(league.id, data.standings, data.groups);
       } catch (err) {
         console.warn(`[standings/${league.id}] ${err.message}`);
         const bodyEl = document.getElementById(`standings-body-${league.id}`);
