@@ -1,8 +1,8 @@
-# 💰 Gold-Price
+# 💰⚽ Gold Price & Football
 
-A **Progressive Web App (PWA)** for real-time financial data including gold, silver, crude oil, exchange rates, US stocks, Shanghai Composite, and Hang Seng.
+A **Progressive Web App (PWA)** for real-time financial data and live football standings — including gold, silver, crude oil, exchange rates, US stocks, Shanghai Composite, Hang Seng, and league tables for La Liga, Premier League, and UEFA Champions League.
 
-Data is fetched from multiple sources in priority order: **GoldPrice.org** (gold/silver spot) → **新浪财经 Sina Finance** (all symbols, no API key, works in China) → **Yahoo Finance** (fallback) → **Brave Search API** (optional last-resort fallback).
+Financial data is fetched from multiple sources in priority order: **GoldPrice.org** (gold/silver spot) → **新浪财经 Sina Finance** (all symbols, no API key, works in China) → **Yahoo Finance** (fallback) → **Brave Search API** (optional last-resort fallback).
 
 Key features:
 - 🥇 **Gold, Silver, Crude Oil** spot prices
@@ -10,6 +10,7 @@ Key features:
 - 📈 **S&P 500, Dow Jones, NASDAQ** US indices
 - 🐉 **Shanghai Composite (SSE)** and 🌸 **Hang Seng (HSI)** Asian indices
 - 🇨🇳 Automatic **gold price in CNY/gram** conversion
+- ⚽ **Football standings** — La Liga 🇪🇸, Premier League 🏴󠁧󠁢󠁥󠁮󠁧󠁿, and UEFA Champions League 🌟 (via Dongqiudi)
 - 📊 **Trend sparklines** on every card + full interactive chart on tap
 - 🧩 **Two-row card layout** with smooth horizontal scrolling for dense market overviews
 - 📐 **Optimized trend chart sizing** for better readability on both mobile and desktop
@@ -27,7 +28,7 @@ Key features:
 |:---:|:---:|
 | ![Light Mode](docs/screenshots/light-mode.png) | ![Dark Mode](docs/screenshots/dark-mode.png) |
 
-| Settings Panel | Mobile View |
+| Settings Panel | Mobile View (with Football Standings) |
 |:---:|:---:|
 | ![Settings](docs/screenshots/settings.png) | ![Mobile](docs/screenshots/mobile.png) |
 
@@ -99,13 +100,15 @@ docker rm golden-price
 ## Architecture
 
 ```
-Gold-Price/
+Golden-Price/
 ├── server.js          # Express server — proxies external APIs (solves CORS)
 ├── package.json
+├── lib/
+│   └── standings.js   # Football standings parser (Dongqiudi HTML → JSON)
 └── public/
     ├── index.html     # App shell
     ├── styles.css     # Responsive light/dark theme (mobile + desktop)
-    ├── app.js         # Data fetching, parsing, charts, history
+    ├── app.js         # Data fetching, parsing, charts, history, standings
     ├── manifest.json  # PWA manifest
     ├── sw.js          # Service worker (offline caching)
     └── icons/
@@ -119,6 +122,7 @@ Gold-Price/
 | `GET /api/goldprice` | goldprice.org — real-time XAU/XAG spot | None |
 | `GET /api/sina/quotes` | hq.sinajs.cn — bulk quotes for all symbols | None |
 | `GET /api/quote/:symbol` | Yahoo Finance — 5-day chart & latest price | None |
+| `GET /api/standings/:league` | m.dongqiudi.com — league table (`laliga`, `premierleague`, `ucl`) | None |
 | `GET /api/search?q=…` | Brave Search API — structured web results | `X-Api-Key` header |
 | `GET /api/ping?host=…` | Connectivity probe (sina / yahoo / brave) | None |
 
@@ -161,4 +165,22 @@ Historical data points (up to 48 per metric) are stored in `localStorage` for sp
 - The trend chart modal uses a **responsive container** (`clamp`-based height) for balanced chart proportions.
 - The page is tuned for **mobile and desktop** with breakpoint-based spacing, typography, and card widths.
 - Visual polish includes a soft gradient background, glass-like sticky header, and refined hover/focus states.
+- The **football standings section** appears below the financial cards and shows live league tables for La Liga, Premier League, and Champions League.
+
+---
+
+## Football Standings
+
+Standings data is proxied from [懂球帝 Dongqiudi](https://m.dongqiudi.com) — no API key required. The server fetches the mobile HTML page, extracts the embedded `window.__INITIAL_STATE__` JSON, and returns a JSON response to the client.
+
+| League | `league` param |
+|--------|---------------|
+| 🇪🇸 La Liga | `laliga` |
+| 🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League | `premierleague` |
+| 🌟 UEFA Champions League | `ucl` |
+
+**Response shape:** `{ standings, groups }`
+
+- `standings` — flat array of all teams, each with: `{ pos, team, logo, pts, wins, draws, losses, played, gd }`
+- `groups` — array of group objects (used by UCL where teams are split into groups/phases); empty array `[]` for single-table leagues like La Liga and Premier League
 
