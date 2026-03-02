@@ -768,6 +768,221 @@ input[type="checkbox"] {
 /* ---- Utility ---- */
 [hidden] { display: none !important; }
 
+/* ---- Football Standings Section ---- */
+.standings-section {
+  margin-top: 22px;
+}
+
+.standings-section-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(0,0,0,0.07);
+}
+
+.standings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.standings-card {
+  background: var(--bg-card);
+  border: 1px solid rgba(0,0,0,0.08);
+  border-top: 3px solid var(--card-accent, var(--gold-light));
+  border-radius: var(--radius);
+  padding: 10px 12px 8px;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition), transform var(--transition);
+  overflow: hidden;
+  position: relative;
+}
+
+.standings-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0));
+  pointer-events: none;
+}
+
+.standings-card:hover {
+  box-shadow: 0 10px 26px rgba(24,39,75,0.16);
+  transform: translateY(-2px);
+}
+
+.standings-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.standings-card-title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.standings-name-zh {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  font-weight: 400;
+  text-transform: none;
+}
+
+.standings-updated {
+  font-size: 0.62rem;
+  color: var(--text-dim);
+}
+
+.standings-error {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  text-align: center;
+  padding: 14px 0;
+}
+
+/* Standings Table */
+.standings-body {
+  overflow-y: auto;
+  max-height: 360px;
+}
+
+.standings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.72rem;
+  table-layout: fixed;
+}
+
+.standings-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--bg-card);
+  padding: 3px 4px 5px;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 0.63rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  border-bottom: 1px solid rgba(0,0,0,0.07);
+  white-space: nowrap;
+  z-index: 1;
+}
+
+.standings-table thead th.team-col { text-align: left; }
+
+.standings-table th:first-child { width: 22px; }
+.standings-table .team-col       { width: auto; }
+.standings-table th:nth-child(3) { width: 30px; font-weight: 700; }
+.standings-table th:nth-child(n+4) { width: 24px; }
+
+.standings-table tbody tr {
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+  transition: background var(--transition);
+}
+
+.standings-table tbody tr:last-child { border-bottom: none; }
+
+.standings-table tbody tr:hover { background: rgba(0,0,0,0.03); }
+
+.standings-table td {
+  padding: 4px 4px;
+  text-align: center;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.standings-table td.team-col {
+  text-align: left;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.standings-table td:first-child {
+  color: var(--text-dim);
+  font-size: 0.65rem;
+}
+
+.standings-table .pts-col {
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* Real Madrid / highlight row */
+.standings-row-highlight {
+  background: rgba(212, 136, 10, 0.10) !important;
+  border-left: 2px solid var(--gold-light);
+}
+
+.standings-row-highlight td { color: var(--text) !important; }
+.standings-row-highlight .pts-col { color: var(--gold) !important; }
+.standings-row-highlight td:first-child { color: var(--gold) !important; }
+
+.standings-rm-badge {
+  font-size: 0.6rem;
+  margin-left: 2px;
+  vertical-align: middle;
+}
+
+/* Dark mode overrides for standings */
+[data-theme="dark"] .standings-section-title {
+  border-bottom-color: rgba(255,255,255,0.07);
+}
+
+[data-theme="dark"] .standings-card {
+  border-color: rgba(255,255,255,0.08);
+}
+
+[data-theme="dark"] .standings-card::before {
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0));
+}
+
+[data-theme="dark"] .standings-card:hover {
+  box-shadow: 0 10px 26px rgba(0,0,0,0.45);
+}
+
+[data-theme="dark"] .standings-table thead th {
+  background: var(--bg-card);
+  border-bottom-color: rgba(255,255,255,0.07);
+}
+
+[data-theme="dark"] .standings-table tbody tr {
+  border-bottom-color: rgba(255,255,255,0.04);
+}
+
+[data-theme="dark"] .standings-table tbody tr:hover {
+  background: rgba(255,255,255,0.04);
+}
+
+[data-theme="dark"] .standings-row-highlight {
+  background: rgba(212,136,10,0.13) !important;
+  border-left-color: var(--gold);
+}
+
+@media (max-width: 520px) {
+  .standings-grid { grid-template-columns: 1fr; gap: 10px; }
+  .standings-table { font-size: 0.68rem; }
+}
+
+@media (min-width: 1200px) {
+  .standings-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
 @media (max-width: 520px) {
   .logo-text { font-size: 0.98rem; }
   .status-bar { font-size: 0.66rem; }
