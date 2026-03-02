@@ -100,7 +100,7 @@ docker rm golden-price
 ## Architecture
 
 ```
-Gold-Price/
+Golden-Price/
 ├── server.js          # Express server — proxies external APIs (solves CORS)
 ├── package.json
 ├── lib/
@@ -171,7 +171,7 @@ Historical data points (up to 48 per metric) are stored in `localStorage` for sp
 
 ## Football Standings
 
-Standings data is proxied from [东球迷 Dongqiudi](https://m.dongqiudi.com) — no API key required. The server fetches the mobile HTML page, extracts the embedded `window.__INITIAL_STATE__` JSON, and returns normalized rows to the client.
+Standings data is proxied from [懂球帝 Dongqiudi](https://m.dongqiudi.com) — no API key required. The server fetches the mobile HTML page, extracts the embedded `window.__INITIAL_STATE__` JSON, and returns a JSON response to the client.
 
 | League | `league` param |
 |--------|---------------|
@@ -179,5 +179,8 @@ Standings data is proxied from [东球迷 Dongqiudi](https://m.dongqiudi.com) �
 | 🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League | `premierleague` |
 | 🌟 UEFA Champions League | `ucl` |
 
-Each row includes: position, team name, logo URL, points, wins, draws, losses, games played, and goal difference.
+**Response shape:** `{ standings, groups }`
+
+- `standings` — flat array of all teams, each with: `{ pos, team, logo, pts, wins, draws, losses, played, gd }`
+- `groups` — array of group objects (used by UCL where teams are split into groups/phases); empty array `[]` for single-table leagues like La Liga and Premier League
 
