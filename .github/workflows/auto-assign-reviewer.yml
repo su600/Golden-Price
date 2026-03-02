@@ -2,7 +2,7 @@ name: Auto Assign
 
 on:
   pull_request:
-    types: [opened,synchronize]
+    types: [synchronize]
 
 permissions: 
   pull-requests: write
