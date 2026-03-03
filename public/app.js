@@ -9,11 +9,13 @@
 'use strict';
 
 // ── Constants ────────────────────────────────────────────────
-const CONFIG_KEY   = 'gp_config_v1';
-const HISTORY_KEY  = 'gp_history_v1';
-const THEME_KEY    = 'gp_theme_v1';
-const MAX_HISTORY  = 48;   // data points kept per item
-const TROY_OZ_GRAM = 31.1035; // grams per troy ounce
+const CONFIG_KEY      = 'gp_config_v1';
+const HISTORY_KEY     = 'gp_history_v1';
+const THEME_KEY       = 'gp_theme_v1';
+const MAX_HISTORY     = 48;   // data points kept per item
+const TROY_OZ_GRAM    = 31.1035; // grams per troy ounce
+const MOBILE_BREAKPOINT = 768; // px — must match the CSS @media (max-width: 768px)
+const SWIPE_THRESHOLD   = 60;  // px — minimum horizontal swipe distance to switch tabs
 
 // ── Financial Items Definition ───────────────────────────────
 const ITEMS = [
@@ -1131,6 +1133,14 @@ function closeTrendChart() {
   if (trendChart) { trendChart.destroy(); trendChart = null; }
 }
 
+// ── Mobile Tab Switching ─────────────────────────────────────
+function switchMobileTab(tab) {
+  const main = document.querySelector('.main-content');
+  main.dataset.tab = tab;
+  document.getElementById('tabFinance').classList.toggle('active', tab === 'finance');
+  document.getElementById('tabFootball').classList.toggle('active', tab === 'football');
+}
+
 // ── Settings Modal ───────────────────────────────────────────
 function openSettings() {
   document.getElementById('apiKeyInput').value    = config.apiKey;
@@ -1245,6 +1255,25 @@ function init() {
       alert('History cleared.');
     }
   });
+
+  // Mobile tab buttons
+  document.getElementById('tabFinance').addEventListener('click', () => switchMobileTab('finance'));
+  document.getElementById('tabFootball').addEventListener('click', () => switchMobileTab('football'));
+
+  // Touch swipe to switch tabs (mobile only)
+  let _touchStartX = 0;
+  const mainEl = document.querySelector('.main-content');
+  mainEl.addEventListener('touchstart', (e) => {
+    _touchStartX = e.touches[0].clientX;
+  }, { passive: true });
+  mainEl.addEventListener('touchend', (e) => {
+    // Avoid interfering with horizontal scroll inside standings tables
+    if (e.target.closest('.standings-body')) return;
+    const dx = e.changedTouches[0].clientX - _touchStartX;
+    if (Math.abs(dx) > SWIPE_THRESHOLD && window.innerWidth <= MOBILE_BREAKPOINT) {
+      switchMobileTab(dx < 0 ? 'football' : 'finance');
+    }
+  }, { passive: true });
 
   if (!config.apiKey) {
     document.getElementById('noApiAlert').hidden = false;
