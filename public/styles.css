@@ -854,6 +854,7 @@ input[type="checkbox"] {
 
 /* Standings Table */
 .standings-body {
+  overflow-x: auto;
   overflow-y: auto;
   max-height: 260px;
 }
