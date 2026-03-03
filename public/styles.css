@@ -1024,7 +1024,9 @@ input[type="checkbox"] {
   .card-sparkline { height: 30px; }
   .modal-header { padding: 12px 14px 10px; }
   .modal-body { padding: 14px; }
-  .chart-stats { grid-template-columns: repeat(2, 1fr); }
+  .chart-stats { grid-template-columns: repeat(3, 1fr); gap: 5px; }
+  .stat-item { padding: 6px 2px; }
+  .stat-value { font-size: 0.75rem; }
 }
 
 @media (min-width: 768px) {
