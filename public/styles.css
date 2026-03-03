@@ -760,6 +760,7 @@ input[type="checkbox"] {
 }
 
 .app-footer a { color: var(--gold); }
+.copilot-icon { vertical-align: middle; margin-right: 2px; }
 
 [data-theme="dark"] .app-footer {
   border-top-color: rgba(255,255,255,0.07);
