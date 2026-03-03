@@ -900,9 +900,9 @@ input[type="checkbox"] {
 .standings-table thead th.team-col { text-align: left; }
 
 .standings-table th:first-child { width: 22px; }
-.standings-table .team-col       { width: auto; }
+.standings-table .team-col       { width: 80px; }
 .standings-table th:nth-child(3) { width: 30px; font-weight: 700; }
-.standings-table th:nth-child(n+4) { width: 24px; }
+.standings-table th:nth-child(n+4) { width: 28px; }
 
 .standings-table tbody tr {
   border-bottom: 1px solid rgba(0,0,0,0.04);
@@ -924,7 +924,7 @@ input[type="checkbox"] {
 
 .standings-table td.team-col {
   text-align: left;
-  max-width: 120px;
+  max-width: 80px;
   overflow: hidden;
   text-overflow: ellipsis;
   vertical-align: middle;
