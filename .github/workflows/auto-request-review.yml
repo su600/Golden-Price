@@ -1,11 +1,9 @@
 name: Auto Request Review
 
 on:
-  # 必须用 pull_request_target，它是绕过审批的唯一钥匙
   pull_request_target:
     types: [synchronize]
 
-# 显式声明这个 Job 的权限，防止因为默认权限不足而被卡住
 permissions:
   pull-requests: write
   contents: read
@@ -13,17 +11,19 @@ permissions:
 jobs:
   request-review:
     runs-on: ubuntu-latest
-    # 逻辑：只要不是你自己提交的，就执行
     if: github.actor != 'su600'
     
     steps:
       - name: Request review from su600
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # pull_request_target 模式下，这样获取 PR 链接最安全
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          # 直接获取当前运行的仓库名，例如 "su600/my-repo"
+          REPO: ${{ github.repository }}
         run: |
-          echo "检测到非 su600 提交，正在通过主分支环境自动授权..."
-          # 使用 PR 编号直接添加审阅者
-          gh pr edit "$PR_NUMBER" --add-reviewer su600
+          echo "检测到非 su600 提交，正在处理仓库 $REPO 的 PR #$PR_NUMBER ..."
+          
+          # 通过 --repo 参数显式指定仓库，不再依赖本地 .git 目录
+          gh pr edit "$PR_NUMBER" --repo "$REPO" --add-reviewer su600
+          
           echo "Done!"
