@@ -2,7 +2,7 @@ name: Auto Request Review
 
 # 触发条件：仅当 PR 有新的 commit 提交（synchronize）时触发
 on:
-  pull_request:
+  pull_request_target:
     types: [synchronize]
 
 jobs:
