@@ -1,30 +1,29 @@
 name: Auto Request Review
 
-# 触发条件：仅当 PR 有新的 commit 提交（synchronize）时触发
 on:
+  # 必须用 pull_request_target，它是绕过审批的唯一钥匙
   pull_request_target:
     types: [synchronize]
 
+# 显式声明这个 Job 的权限，防止因为默认权限不足而被卡住
+permissions:
+  pull-requests: write
+  contents: read
+
 jobs:
-  add-reviewer:
-    # 运行环境
+  request-review:
     runs-on: ubuntu-latest
-    
-    # 核心逻辑：只有当提交代码的人（actor）不是 su600 时，才执行下面的步骤
+    # 逻辑：只要不是你自己提交的，就执行
     if: github.actor != 'su600'
-
-    # 给 GITHUB_TOKEN 授予修改 PR 的权限
-    permissions:
-      pull-requests: write
-      contents: read
-
+    
     steps:
       - name: Request review from su600
-        # 使用 GitHub 官方提供的 CLI 工具，简单高效
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_URL: ${{ github.event.pull_request.html_url }}
+          # pull_request_target 模式下，这样获取 PR 链接最安全
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          echo "检测到非 su600 的提交，正在自动添加 su600 为审阅者..."
-          gh pr edit "$PR_URL" --add-reviewer su600
-          echo "成功！"
+          echo "检测到非 su600 提交，正在通过主分支环境自动授权..."
+          # 使用 PR 编号直接添加审阅者
+          gh pr edit "$PR_NUMBER" --add-reviewer su600
+          echo "Done!"
