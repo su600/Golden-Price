@@ -264,8 +264,25 @@ function fmt(value, decimals = 2) {
   return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
 }
 
+// Formats a timestamp as full date+time in Beijing time (CST, UTC+8)
 function fmtTime(ts) {
-  return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  return new Date(ts).toLocaleString('zh-CN', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false
+  });
+}
+
+// Formats a timestamp as a short time in Beijing time (CST, UTC+8),
+// suitable for compact chart x-axis labels and tooltips.
+function fmtTimeShort(ts) {
+  return new Date(ts).toLocaleTimeString('zh-CN', {
+    timeZone: 'Asia/Shanghai',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
 }
 
 function showError(msg) {
@@ -1077,7 +1094,7 @@ function openTrendChart(id) {
     title: { text: null },
     credits: { enabled: false },
     xAxis: {
-      categories: pts.map((p) => fmtTime(p.t)),
+      categories: pts.map((p) => fmtTimeShort(p.t)),
       labels: {
         style: { color: chartTextColor, fontSize: '10px' },
         step: Math.max(1, Math.floor(pts.length / 6)),
