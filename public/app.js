@@ -935,6 +935,7 @@ async function refreshData() {
 
   const enabled = ITEMS.filter((i) => config.enabledItems.includes(i.id));
   const prices  = {};
+  const changes = {};
 
   for (const item of enabled) {
     if (item.derived) continue; // derived items are computed from base prices below
@@ -942,6 +943,7 @@ async function refreshData() {
     try {
       const { price, change } = await fetchItem(item);
       prices[item.id] = price;
+      changes[item.id] = change;
       updateCard(item.id, price, change);
     } catch (err) {
       setCardError(item.id, err.message);
@@ -959,7 +961,15 @@ async function refreshData() {
     const subEl = document.getElementById('sub-gold');
     if (subEl) subEl.textContent = `≈ ¥${cnyPerGram.toFixed(2)}/g`;
     if (config.enabledItems.includes('gold_cny')) {
-      updateCard('gold_cny', cnyPerGram, null);
+      const goldChange   = changes['gold'];
+      const usdcnyChange = changes['usdcny'];
+      let goldCnyChange  = null;
+      if (goldChange != null && usdcnyChange != null) {
+        goldCnyChange = ((1 + goldChange / 100) * (1 + usdcnyChange / 100) - 1) * 100;
+      } else if (goldChange != null) {
+        goldCnyChange = goldChange;
+      }
+      updateCard('gold_cny', cnyPerGram, goldCnyChange);
     }
   } else if (config.enabledItems.includes('gold_cny')) {
     // Base prices unavailable — show N/A on the derived card
