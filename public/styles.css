@@ -1047,6 +1047,12 @@ input[type="checkbox"] {
     box-shadow: 0 2px 8px rgba(212, 136, 10, 0.35);
   }
 
+  .mobile-tab-btn:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 2px var(--gold-dim);
+  }
+
   /* Hide inactive tab panels */
   .main-content[data-tab="football"] .cards-grid {
     display: none !important;

@@ -1137,8 +1137,12 @@ function closeTrendChart() {
 function switchMobileTab(tab) {
   const main = document.querySelector('.main-content');
   main.dataset.tab = tab;
-  document.getElementById('tabFinance').classList.toggle('active', tab === 'finance');
-  document.getElementById('tabFootball').classList.toggle('active', tab === 'football');
+  const finBtn  = document.getElementById('tabFinance');
+  const footBtn = document.getElementById('tabFootball');
+  finBtn.classList.toggle('active',  tab === 'finance');
+  footBtn.classList.toggle('active', tab === 'football');
+  finBtn.setAttribute('aria-pressed',  String(tab === 'finance'));
+  footBtn.setAttribute('aria-pressed', String(tab === 'football'));
 }
 
 // ── Settings Modal ───────────────────────────────────────────
@@ -1262,13 +1266,18 @@ function init() {
 
   // Touch swipe to switch tabs (mobile only)
   let _touchStartX = 0;
+  let _touchStartInStandings = false;
   const mainEl = document.querySelector('.main-content');
   mainEl.addEventListener('touchstart', (e) => {
     _touchStartX = e.touches[0].clientX;
+    const t = e.target;
+    _touchStartInStandings = t instanceof Element && !!t.closest('.standings-body');
   }, { passive: true });
   mainEl.addEventListener('touchend', (e) => {
     // Avoid interfering with horizontal scroll inside standings tables
-    if (e.target.closest('.standings-body')) return;
+    if (_touchStartInStandings) return;
+    const target = e.target;
+    if (target instanceof Element && target.closest('.standings-body')) return;
     const dx = e.changedTouches[0].clientX - _touchStartX;
     if (Math.abs(dx) > SWIPE_THRESHOLD && window.innerWidth <= MOBILE_BREAKPOINT) {
       switchMobileTab(dx < 0 ? 'football' : 'finance');
