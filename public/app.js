@@ -274,6 +274,17 @@ function fmtTime(ts) {
   });
 }
 
+// Formats a timestamp as a short time in Beijing time (CST, UTC+8),
+// suitable for compact chart x-axis labels and tooltips.
+function fmtTimeShort(ts) {
+  return new Date(ts).toLocaleTimeString('zh-CN', {
+    timeZone: 'Asia/Shanghai',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+}
+
 function showError(msg) {
   const el = document.getElementById('errorAlert');
   document.getElementById('errorMsg').textContent = msg;
@@ -1083,7 +1094,7 @@ function openTrendChart(id) {
     title: { text: null },
     credits: { enabled: false },
     xAxis: {
-      categories: pts.map((p) => fmtTime(p.t)),
+      categories: pts.map((p) => fmtTimeShort(p.t)),
       labels: {
         style: { color: chartTextColor, fontSize: '10px' },
         step: Math.max(1, Math.floor(pts.length / 6)),
