@@ -166,6 +166,7 @@ Historical data points (up to 48 per metric) are stored in `localStorage` for sp
 - The page is tuned for **mobile and desktop** with breakpoint-based spacing, typography, and card widths.
 - Visual polish includes a soft gradient background, glass-like sticky header, and refined hover/focus states.
 - The **football standings section** appears below the financial cards and shows live league tables for La Liga, Premier League, and Champions League.
+- The **footer** displays "Made with ❤️ by su600 & GitHub Copilot" with links to the author's GitHub profile and GitHub Copilot.
 
 ---
 
