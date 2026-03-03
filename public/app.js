@@ -233,7 +233,7 @@ const LEAGUES = [
   },
   {
     id: 'ucl',
-    emoji: '🌟',
+    emoji: '🏆',
     name: 'Champions League',
     name_zh: '欧冠',
     accent: '#1E5EAD',
