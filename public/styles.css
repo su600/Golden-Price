@@ -879,7 +879,7 @@ input[type="checkbox"] {
 .standings-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   table-layout: fixed;
 }
 
@@ -890,7 +890,7 @@ input[type="checkbox"] {
   padding: 3px 4px 5px;
   text-align: center;
   color: var(--text-dim);
-  font-size: 0.63rem;
+  font-size: 0.68rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.3px;
@@ -943,7 +943,7 @@ input[type="checkbox"] {
 
 .standings-table td:first-child {
   color: var(--text-dim);
-  font-size: 0.65rem;
+  font-size: 0.70rem;
 }
 
 .standings-table .pts-col {
@@ -1008,7 +1008,7 @@ input[type="checkbox"] {
 
 @media (max-width: 520px) {
   .standings-grid { grid-template-columns: 1fr; gap: 10px; }
-  .standings-table { font-size: 0.68rem; }
+  .standings-table { font-size: 0.74rem; }
 }
 
 /* ---- Mobile Tab Navigation ---- */
