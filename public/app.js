@@ -945,9 +945,6 @@ async function refreshLeagueStandings() {
 
 async function refreshData() {
   if (isRefreshing) return;
-  // Show advisory if no Brave API key, but still proceed via Yahoo Finance
-  document.getElementById('noApiAlert').hidden = !!config.apiKey;
-
   isRefreshing = true;
   const refreshIcon = document.getElementById('refreshIcon');
   refreshIcon.classList.add('spinning');
@@ -1000,7 +997,6 @@ async function refreshData() {
 
   document.getElementById('lastUpdated').textContent =
     `🕐 Updated: ${fmtTime(Date.now())}`;
-  document.getElementById('noApiAlert').hidden = true;
 
   refreshIcon.classList.remove('spinning');
   isRefreshing = false;
@@ -1254,7 +1250,6 @@ function init() {
   document.getElementById('closeSettings').addEventListener('click', closeSettings);
   document.getElementById('settingsBackdrop').addEventListener('click', closeSettings);
   document.getElementById('saveSettings').addEventListener('click', saveSettings);
-  document.getElementById('alertSettingsBtn').addEventListener('click', openSettings);
   document.getElementById('closeChart').addEventListener('click', closeTrendChart);
   document.getElementById('chartBackdrop').addEventListener('click', closeTrendChart);
   document.getElementById('closeInfoTooltip').addEventListener('click', closeInfoTooltip);
@@ -1301,11 +1296,6 @@ function init() {
     }
   }, { passive: true });
 
-  if (!config.apiKey) {
-    document.getElementById('noApiAlert').hidden = false;
-    // Only auto-open settings on very first visit (no history yet)
-    if (!Object.keys(history).length) setTimeout(openSettings, 300);
-  }
   // Always start auto-refresh and load data; Sina Finance works without an API key
   startAutoRefresh();
   refreshData();
