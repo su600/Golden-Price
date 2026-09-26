@@ -167,7 +167,7 @@ Historical data points (up to 48 per metric) are stored in `localStorage` for sp
 - Cards are displayed in a **fixed two-row layout** and scroll horizontally when needed.
 - The trend chart modal uses a **responsive container** (`clamp`-based height) for balanced chart proportions.
 - The page is tuned for **mobile and desktop** with breakpoint-based spacing, typography, and card widths.
-- Visual polish includes a soft gradient background, glass-like sticky header, and refined hover/focus states.
+- Visual polish includes a soft gradient background, translucent glass surfaces across the header, cards, standings, and dialogs, plus refined hover/focus states. Browsers without backdrop-filter fall back to solid surfaces.
 - The **football standings section** appears below the financial cards and shows live league tables for La Liga, Premier League, and Champions League.
 - The **footer** displays "Made with ❤️ by su600 & GitHub Copilot" with links to the author's GitHub profile and GitHub Copilot.
 

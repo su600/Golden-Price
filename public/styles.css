@@ -14,6 +14,10 @@
   --bg-card: #FFFFFF;
   --bg-card-hover: #FAFBFC;
   --bg-overlay: rgba(30, 40, 70, 0.50);
+  --glass-surface: rgba(255, 255, 255, 0.62);
+  --glass-panel: rgba(255, 255, 255, 0.78);
+  --glass-border: rgba(255, 255, 255, 0.68);
+  --glass-chip: rgba(255, 255, 255, 0.42);
 
   --text: #1A2033;
   --text-muted: #5A6478;
@@ -57,9 +61,10 @@ a:hover { text-decoration: underline; }
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(255,255,255,0.88);
-  backdrop-filter: saturate(130%) blur(8px);
-  border-bottom: 1px solid rgba(0,0,0,0.09);
+  background: var(--glass-surface);
+  backdrop-filter: saturate(145%) blur(16px);
+  -webkit-backdrop-filter: saturate(145%) blur(16px);
+  border-bottom: 1px solid var(--glass-border);
   box-shadow: 0 1px 8px rgba(0,0,0,0.07);
   padding: 0 clamp(12px, 2vw, 20px);
 }
@@ -189,8 +194,10 @@ a:hover { text-decoration: underline; }
 
 /* ---- Financial Card ---- */
 .fin-card {
-  background: var(--bg-card);
-  border: 1px solid rgba(0,0,0,0.08);
+  background: var(--glass-surface);
+  backdrop-filter: saturate(135%) blur(16px);
+  -webkit-backdrop-filter: saturate(135%) blur(16px);
+  border: 1px solid var(--glass-border);
   border-top: 3px solid var(--card-accent, var(--gold-light));
   border-radius: var(--radius);
   padding: 7px 11px 6px;
@@ -263,7 +270,7 @@ a:hover { text-decoration: underline; }
 .card-badge {
   font-size: 0.57rem;
   color: var(--text-dim);
-  background: rgba(0,0,0,0.05);
+  background: var(--glass-chip);
   border-radius: 3px;
   padding: 1px 4px;
   letter-spacing: 0.3px;
@@ -294,8 +301,10 @@ a:hover { text-decoration: underline; }
 .info-tooltip {
   position: fixed;
   z-index: 600;
-  background: var(--bg-card);
-  border: 1px solid rgba(0,0,0,0.13);
+  background: var(--glass-panel);
+  backdrop-filter: saturate(140%) blur(18px);
+  -webkit-backdrop-filter: saturate(140%) blur(18px);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-sm);
   box-shadow: 0 4px 18px rgba(0,0,0,0.18);
   padding: 10px 12px 8px;
@@ -410,13 +419,16 @@ a:hover { text-decoration: underline; }
   position: absolute;
   inset: 0;
   background: var(--bg-overlay);
-  backdrop-filter: blur(3px);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 .modal-sheet {
   position: relative;
-  background: #FFFFFF;
-  border: 1px solid rgba(0,0,0,0.10);
+  background: var(--glass-panel);
+  backdrop-filter: saturate(140%) blur(22px);
+  -webkit-backdrop-filter: saturate(140%) blur(22px);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius) var(--radius) 0 0;
   width: 100%;
   max-width: 500px;
@@ -451,7 +463,9 @@ a:hover { text-decoration: underline; }
   border-bottom: 1px solid rgba(0,0,0,0.08);
   position: sticky;
   top: 0;
-  background: #FFFFFF;
+  background: var(--glass-panel);
+  backdrop-filter: saturate(140%) blur(18px);
+  -webkit-backdrop-filter: saturate(140%) blur(18px);
   z-index: 1;
 }
 
@@ -487,8 +501,8 @@ input[type="password"],
 input[type="text"],
 select {
   width: 100%;
-  background: #F7F8FA;
-  border: 1px solid rgba(0,0,0,0.13);
+  background: var(--glass-chip);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-sm);
   color: var(--text);
   padding: 8px 12px;
@@ -502,7 +516,7 @@ input[type="password"]:focus,
 input[type="text"]:focus,
 select:focus {
   border-color: var(--gold);
-  background: #FFFDF5;
+  background: rgba(255, 253, 245, 0.82);
   box-shadow: 0 0 0 3px rgba(212,136,10,0.10);
 }
 
@@ -531,8 +545,8 @@ select option { background: #FFFFFF; color: var(--text); }
   text-transform: none;
   letter-spacing: 0;
   cursor: pointer;
-  background: #F7F8FA;
-  border: 1px solid rgba(0,0,0,0.08);
+  background: var(--glass-chip);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-sm);
   padding: 6px 9px;
   transition: background var(--transition), border-color var(--transition);
@@ -602,8 +616,10 @@ input[type="checkbox"] {
 
 .stat-item {
   text-align: center;
-  background: linear-gradient(180deg, #FBFCFF, #F6F8FC);
-  border: 1px solid rgba(0,0,0,0.06);
+  background: var(--glass-chip);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-sm);
   padding: 8px 4px;
 }
@@ -636,6 +652,10 @@ input[type="checkbox"] {
   --bg-card: #1A1D27;
   --bg-card-hover: #20243A;
   --bg-overlay: rgba(0, 0, 0, 0.72);
+  --glass-surface: rgba(26, 29, 39, 0.58);
+  --glass-panel: rgba(26, 29, 39, 0.76);
+  --glass-border: rgba(255, 255, 255, 0.16);
+  --glass-chip: rgba(255, 255, 255, 0.055);
 
   --text: #E8EBF2;
   --text-muted: #9099B0;
@@ -650,14 +670,14 @@ input[type="checkbox"] {
 
 [data-theme="dark"] body {
   background:
-    radial-gradient(circle at 12% -8%, rgba(245,166,35,0.07), transparent 42%),
-    radial-gradient(circle at 88% -20%, rgba(92,107,192,0.06), transparent 38%),
+    radial-gradient(circle at 12% -8%, rgba(245,166,35,0.12), transparent 42%),
+    radial-gradient(circle at 88% -20%, rgba(92,107,192,0.08), transparent 38%),
     var(--bg);
 }
 
 [data-theme="dark"] .app-header {
-  background: rgba(15, 17, 23, 0.90);
-  border-bottom-color: rgba(255,255,255,0.08);
+  background: var(--glass-surface);
+  border-bottom-color: var(--glass-border);
   box-shadow: 0 1px 8px rgba(0,0,0,0.35);
 }
 
@@ -666,7 +686,9 @@ input[type="checkbox"] {
 }
 
 [data-theme="dark"] .fin-card {
-  border-color: rgba(255,255,255,0.08);
+  border-left-color: var(--glass-border);
+  border-right-color: var(--glass-border);
+  border-bottom-color: var(--glass-border);
 }
 
 [data-theme="dark"] .fin-card::before {
@@ -678,12 +700,12 @@ input[type="checkbox"] {
 }
 
 [data-theme="dark"] .card-badge {
-  background: rgba(255,255,255,0.08);
+  background: var(--glass-chip);
 }
 
 [data-theme="dark"] .info-tooltip {
-  background: #1A1D27;
-  border-color: rgba(255,255,255,0.12);
+  background: var(--glass-panel);
+  border-color: var(--glass-border);
   box-shadow: 0 4px 18px rgba(0,0,0,0.55);
 }
 
@@ -693,14 +715,14 @@ input[type="checkbox"] {
 }
 
 [data-theme="dark"] .modal-sheet {
-  background: #1A1D27;
-  border-color: rgba(255,255,255,0.10);
+  background: var(--glass-panel);
+  border-color: var(--glass-border);
   box-shadow: 0 -10px 36px rgba(0, 0, 0, 0.55);
 }
 
 [data-theme="dark"] .modal-header {
-  background: #1A1D27;
-  border-bottom-color: rgba(255,255,255,0.08);
+  background: var(--glass-panel);
+  border-bottom-color: var(--glass-border);
 }
 
 [data-theme="dark"] .modal-footer {
@@ -710,22 +732,22 @@ input[type="checkbox"] {
 [data-theme="dark"] input[type="password"],
 [data-theme="dark"] input[type="text"],
 [data-theme="dark"] select {
-  background: #23273A;
-  border-color: rgba(255,255,255,0.12);
+  background: var(--glass-chip);
+  border-color: var(--glass-border);
   color-scheme: dark;
 }
 
 [data-theme="dark"] input[type="password"]:focus,
 [data-theme="dark"] input[type="text"]:focus,
 [data-theme="dark"] select:focus {
-  background: #1A2040;
+  background: rgba(26, 32, 64, 0.82);
 }
 
 [data-theme="dark"] select option { background: #1A1D27; }
 
 [data-theme="dark"] .checkbox-grid label {
-  background: #23273A;
-  border-color: rgba(255,255,255,0.08);
+  background: var(--glass-chip);
+  border-color: var(--glass-border);
 }
 
 [data-theme="dark"] .alert-warn { color: #F5C542; }
@@ -745,8 +767,8 @@ input[type="checkbox"] {
 [data-theme="dark"] .btn-secondary:hover { background: #23273A; }
 
 [data-theme="dark"] .stat-item {
-  background: linear-gradient(180deg, #20243A, #1A1D27);
-  border-color: rgba(255,255,255,0.06);
+  background: var(--glass-chip);
+  border-color: var(--glass-border);
 }
 
 /* ---- Footer ---- */
@@ -792,8 +814,10 @@ input[type="checkbox"] {
 }
 
 .standings-card {
-  background: var(--bg-card);
-  border: 1px solid rgba(0,0,0,0.08);
+  background: var(--glass-surface);
+  backdrop-filter: saturate(135%) blur(16px);
+  -webkit-backdrop-filter: saturate(135%) blur(16px);
+  border: 1px solid var(--glass-border);
   border-top: 3px solid var(--card-accent, var(--gold-light));
   border-radius: var(--radius);
   padding: 10px 12px 8px;
@@ -886,7 +910,7 @@ input[type="checkbox"] {
 .standings-table thead th {
   position: sticky;
   top: 0;
-  background: var(--bg-card);
+  background: var(--glass-surface);
   padding: 3px 4px 5px;
   text-align: center;
   color: var(--text-dim);
@@ -977,7 +1001,7 @@ input[type="checkbox"] {
 }
 
 [data-theme="dark"] .standings-card {
-  border-color: rgba(255,255,255,0.08);
+  border-color: var(--glass-border);
 }
 
 [data-theme="dark"] .standings-card::before {
@@ -989,7 +1013,7 @@ input[type="checkbox"] {
 }
 
 [data-theme="dark"] .standings-table thead th {
-  background: var(--bg-card);
+  background: var(--glass-surface);
   border-bottom-color: rgba(255,255,255,0.07);
 }
 
@@ -1019,7 +1043,9 @@ input[type="checkbox"] {
 @media (max-width: 768px) {
   .mobile-tab-nav {
     display: flex;
-    background: var(--bg-card);
+    background: var(--glass-surface);
+    backdrop-filter: saturate(135%) blur(14px);
+    -webkit-backdrop-filter: saturate(135%) blur(14px);
     border-radius: var(--radius);
     padding: 4px;
     gap: 4px;
@@ -1090,4 +1116,21 @@ input[type="checkbox"] {
 @media (min-width: 1200px) {
   .cards-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 13px; }
   .modal-sheet--chart { width: min(86vw, 760px); max-width: 760px; }
+}
+
+/* Keep surfaces readable where backdrop filters are unavailable. */
+@supports not (backdrop-filter: blur(1px)) {
+  :root {
+    --glass-surface: #FFFFFF;
+    --glass-panel: #FFFFFF;
+    --glass-chip: #F7F8FA;
+    --glass-border: rgba(0, 0, 0, 0.10);
+  }
+
+  [data-theme="dark"] {
+    --glass-surface: #1A1D27;
+    --glass-panel: #1A1D27;
+    --glass-chip: #23273A;
+    --glass-border: rgba(255, 255, 255, 0.10);
+  }
 }

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'golden-price-v3';
+const CACHE_NAME = 'golden-price-v4';
 const STATIC_ASSETS = [
   '/',
   '/styles.css',
