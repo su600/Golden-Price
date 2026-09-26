@@ -72,6 +72,8 @@ docker run -d --name golden-price -p 7000:7000 golden-price
 
 访问 **http://localhost:7000** 即可打开应用。
 
+容器使用 Node.js 22 Alpine 镜像、以非 root 用户运行，并通过 `/api/health` 自动检查服务状态。
+
 **常用命令**
 
 ```bash
@@ -119,6 +121,7 @@ Golden-Price/
 
 | Endpoint | Data source | Auth required |
 |----------|------------|---------------|
+| `GET /api/health` | Service liveness check | None |
 | `GET /api/goldprice` | goldprice.org — real-time XAU/XAG spot | None |
 | `GET /api/sina/quotes` | hq.sinajs.cn — bulk quotes for all symbols | None |
 | `GET /api/quote/:symbol` | Yahoo Finance — 5-day chart & latest price | None |

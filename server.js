@@ -7,8 +7,20 @@ const { parseStandingsFromHtml, parseAllStandingsFromHtml } = require('./lib/sta
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.disable('x-powered-by');
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
+
+// Lightweight liveness endpoint for container/platform health checks.
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok', uptimeSeconds: Math.floor(process.uptime()) });
+});
 
 // ── Helper: make an HTTPS GET request, returns a Promise ────
 // Automatically decompresses gzip / deflate / br responses.
@@ -241,13 +253,21 @@ app.get('/api/search', async (req, res) => {
   if (!apiKey) {
     return res.status(400).json({ error: 'Missing API key. Provide it via the X-Api-Key request header.' });
   }
-  if (!q) {
+  if (typeof q !== 'string' || !q.trim()) {
     return res.status(400).json({ error: 'Missing query parameter q' });
   }
+  const query = q.trim();
+  if (query.length > 500) {
+    return res.status(400).json({ error: 'Query is too long (maximum 500 characters)' });
+  }
+  const requestedCount = typeof count === 'string' ? Number.parseInt(count, 10) : NaN;
+  const resultCount = Number.isFinite(requestedCount)
+    ? Math.max(1, Math.min(requestedCount, 10))
+    : 5;
 
   const params = new URLSearchParams({
-    q,
-    count: String(Math.min(parseInt(count, 10) || 5, 10)),
+    q: query,
+    count: String(resultCount),
     search_lang: 'en',
     country: 'us',
     result_filter: 'web,infobox',
@@ -350,6 +370,22 @@ app.get('/api/standings/:league', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`\n  💰 Gold-Price server running at http://localhost:${PORT}\n`);
-});
+if (require.main === module) {
+  const server = app.listen(PORT, () => {
+    console.log(`\n  💰 Gold-Price server running at http://localhost:${PORT}\n`);
+  });
+
+  const shutdown = (signal) => {
+    console.log(`[server] ${signal} received; closing HTTP server`);
+    server.close((err) => {
+      if (err) {
+        console.error('[server] Failed to close cleanly:', err);
+        process.exitCode = 1;
+      }
+    });
+  };
+  process.once('SIGINT', shutdown);
+  process.once('SIGTERM', shutdown);
+}
+
+module.exports = { app, httpsGet, parseSinaLine };

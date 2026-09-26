@@ -257,7 +257,18 @@ let isRefreshing = false;
 let isStandingsRefreshing = false;
 
 // ── Utilities ────────────────────────────────────────────────
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const FETCH_CONCURRENCY = 4;
+
+async function runWithConcurrency(items, limit, handler) {
+  let next = 0;
+  const workerCount = Math.min(limit, items.length);
+  await Promise.all(Array.from({ length: workerCount }, async () => {
+    while (next < items.length) {
+      const item = items[next++];
+      await handler(item);
+    }
+  }));
+}
 
 function fmt(value, decimals = 2) {
   if (value === null || value === undefined || isNaN(value)) return '—';
@@ -689,29 +700,54 @@ function closeInfoTooltip() {
 // ── Data Fetching ────────────────────────────────────────────
 // Sina Finance bulk fetch — single request for all items, works in China
 let sinaCache = null;  // { data, ts }
+let sinaRequest = null;
 async function fetchSinaAll() {
-  // Reuse data if fetched within the last 5 s (multiple cards call this in a loop)
+  // Share both recent results and an in-flight request across concurrent cards.
   if (sinaCache && Date.now() - sinaCache.ts < 5000) return sinaCache.data;
-  const res = await fetch('/api/sina/quotes');
-  if (!res.ok) throw new Error(`Sina API error: HTTP ${res.status}`);
-  const data = await res.json();
-  if (data.error) throw new Error(data.error);
-  sinaCache = { data, ts: Date.now() };
-  return data;
+  if (!sinaRequest) {
+    sinaRequest = (async () => {
+      const res = await fetch('/api/sina/quotes');
+      if (!res.ok) throw new Error(`Sina API error: HTTP ${res.status}`);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      sinaCache = { data, ts: Date.now() };
+      return data;
+    })();
+  }
+  const request = sinaRequest;
+  try {
+    return await request;
+  } finally {
+    if (sinaRequest === request) sinaRequest = null;
+  }
 }
 
 // GoldPrice.org — accurate real-time spot price for gold & silver
 let goldPriceOrgCache = null;  // { data, ts }
+let goldPriceOrgRequest = null;
 async function fetchGoldPriceOrg(item) {
-  // Reuse data if fetched within the last 5 s
+  // Share both recent results and an in-flight request across gold and silver.
+  let data;
   if (goldPriceOrgCache && Date.now() - goldPriceOrgCache.ts < 5000) {
-    return extractGoldPriceOrgData(goldPriceOrgCache.data, item);
+    data = goldPriceOrgCache.data;
+  } else {
+    if (!goldPriceOrgRequest) {
+      goldPriceOrgRequest = (async () => {
+        const res = await fetch('/api/goldprice');
+        if (!res.ok) throw new Error(`GoldPrice API error: HTTP ${res.status}`);
+        const responseData = await res.json();
+        if (responseData.error) throw new Error(responseData.error);
+        goldPriceOrgCache = { data: responseData, ts: Date.now() };
+        return responseData;
+      })();
+    }
+    const request = goldPriceOrgRequest;
+    try {
+      data = await request;
+    } finally {
+      if (goldPriceOrgRequest === request) goldPriceOrgRequest = null;
+    }
   }
-  const res = await fetch('/api/goldprice');
-  if (!res.ok) throw new Error(`GoldPrice API error: HTTP ${res.status}`);
-  const data = await res.json();
-  if (data.error) throw new Error(data.error);
-  goldPriceOrgCache = { data, ts: Date.now() };
   return extractGoldPriceOrgData(data, item);
 }
 
@@ -953,8 +989,8 @@ async function refreshData() {
   const prices  = {};
   const changes = {};
 
-  for (const item of enabled) {
-    if (item.derived) continue; // derived items are computed from base prices below
+  const itemsToFetch = enabled.filter((item) => !item.derived);
+  await runWithConcurrency(itemsToFetch, FETCH_CONCURRENCY, async (item) => {
     setCardLoading(item.id);
     try {
       const { price, change } = await fetchItem(item);
@@ -966,8 +1002,7 @@ async function refreshData() {
       showError(`${item.emoji} ${item.name}: ${err.message}`);
       console.error(`[${item.id}]`, err);
     }
-    await sleep(400); // gentle throttle between requests
-  }
+  });
 
   // Gold → CNY/g sub-label and derived card
   const goldPrice  = prices['gold'];
