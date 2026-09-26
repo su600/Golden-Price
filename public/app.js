@@ -332,6 +332,53 @@ function saveHistory() {
   localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
 }
 
+function exportHistory() {
+  const historyData = Object.fromEntries(
+    Object.entries(history).filter(([, points]) => Array.isArray(points) && points.length > 0),
+  );
+  const seriesIds = Object.keys(historyData);
+  if (!seriesIds.length) {
+    alert('No historical data available to export yet.');
+    return;
+  }
+
+  const metrics = Object.fromEntries(seriesIds.map((id) => {
+    const item = ITEMS.find((candidate) => candidate.id === id);
+    return [id, {
+      name: item?.name_zh || id,
+      unit: item?.unit || '',
+      pointCount: historyData[id].length,
+    }];
+  }));
+  const payload = {
+    format: 'golden-price-history',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    timestampUnit: 'milliseconds since Unix epoch',
+    timeZone: 'Asia/Shanghai',
+    metrics,
+    history: historyData,
+  };
+
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `golden-price-history-${new Date().toISOString().slice(0, 10)}.json`;
+  link.hidden = true;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+  const button = document.getElementById('exportHistory');
+  if (button) {
+    const originalLabel = button.textContent;
+    button.textContent = '✅ Exported';
+    window.setTimeout(() => { button.textContent = originalLabel; }, 1800);
+  }
+}
+
 function pushHistory(id, value) {
   if (!history[id]) history[id] = [];
   // Avoid duplicates in the same minute
@@ -1306,6 +1353,7 @@ function init() {
       alert('History cleared.');
     }
   });
+  document.getElementById('exportHistory').addEventListener('click', exportHistory);
 
   // Mobile tab buttons
   document.getElementById('tabFinance').addEventListener('click', () => switchMobileTab('finance'));

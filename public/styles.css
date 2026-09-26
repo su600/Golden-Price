@@ -474,6 +474,7 @@ a:hover { text-decoration: underline; }
 .modal-body { padding: 16px 18px; }
 .modal-footer {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   justify-content: flex-end;
   padding: 12px 18px 16px;
@@ -592,6 +593,9 @@ input[type="checkbox"] {
 }
 
 .btn-secondary:hover { background: #F0F2F5; }
+
+#clearHistory { margin-right: auto; }
+#exportHistory { white-space: nowrap; }
 
 /* ---- Chart area ---- */
 .chart-meta {

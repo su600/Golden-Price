@@ -158,7 +158,7 @@ The Express server reads your Brave API key from the `X-Api-Key` request header 
 - **Yahoo Finance** (`/v8/finance/chart`) returns `meta.regularMarketPrice` and `meta.regularMarketChangePercent`.
 - **Brave Search** (fallback only) — prices are extracted from search result snippets using item-specific regex patterns with a valid-range guard.
 
-Historical data points (up to 48 per metric) are stored in `localStorage` for sparkline and trend charts.
+Historical data points (up to 48 per metric) are stored in `localStorage` for sparkline and trend charts. Use **Export History** in Settings to download a JSON backup; the export contains price points and metric metadata, never the API key.
 
 ---
 
